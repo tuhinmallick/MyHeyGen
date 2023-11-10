@@ -48,14 +48,20 @@ class Visualizer(object):
         self.plot_data['Y'].append([losses_dict[k] for k in self.plot_data['legend']])
         try:
             self.vis.line(
-                X=np.stack([np.array(self.plot_data['X'])] * len(self.plot_data['legend']), 1),
+                X=np.stack(
+                    [np.array(self.plot_data['X'])]
+                    * len(self.plot_data['legend']),
+                    1,
+                ),
                 Y=np.array(self.plot_data['Y']),
                 opts={
-                    'title': self.opt.name + ' loss over time',
-                    'legend':self.plot_data['legend'],
-                    'xlabel':'epoch',
-                    'ylabel':'loss'},
-                win=self.display_id)
+                    'title': f'{self.opt.name} loss over time',
+                    'legend': self.plot_data['legend'],
+                    'xlabel': 'epoch',
+                    'ylabel': 'loss',
+                },
+                win=self.display_id,
+            )
         except ConnectionError:
             self.throw_visdom_connection_error()
 
@@ -88,15 +94,13 @@ class Visualizer(object):
         
     def numpy2im(self, image_numpy, imtype=np.uint8):
         if image_numpy.shape[0] == 1:
-            image_numpy = np.tile(image_numpy, (3, 1, 1))  
+            image_numpy = np.tile(image_numpy, (3, 1, 1))
         # input should be [0, 1]
         #image_numpy = np.transpose(image_numpy, (1, 2, 0)) * 255.0
         image_numpy = (np.transpose(image_numpy, (1, 2, 0)) / 2. + 0.5) * 255.0
         # print(image_numpy.shape)
         image_numpy = image_numpy.astype(imtype)
-        im = Image.fromarray(image_numpy)
-        # im = Image.fromarray(image_numpy).resize((64, 64), Image.ANTIALIAS)
-        return im   # np.array(im)
+        return Image.fromarray(image_numpy)
 
 
 

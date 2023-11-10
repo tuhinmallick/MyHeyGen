@@ -43,21 +43,18 @@ class BaseModel:
         print("Set model to Test state.")
         for name in self.models_name:
             if isinstance(name, str):
-                net = getattr(self, 'net_' + name)
-                if True:
-                    net.eval()
-                    print("Set net_%s to EVAL." % name)
-                else:
-                    net.train()
+                net = getattr(self, f'net_{name}')
+                net.eval()
+                print(f"Set net_{name} to EVAL.")
         self.is_train = False
 
     def set_train(self):
         print("Set model to Train state.")
         for name in self.models_name:
             if isinstance(name, str):
-                net = getattr(self, 'net_' + name)
+                net = getattr(self, f'net_{name}')
                 net.train()
-                print("Set net_%s to TRAIN." % name)
+                print(f"Set net_{name} to TRAIN.")
         self.is_train = True
 
     def set_requires_grad(self, parameters, requires_grad=False):
@@ -78,7 +75,7 @@ class BaseModel:
         errors_ret = OrderedDict()
         for name in losses_name:
             if isinstance(name, str):
-                cur_loss = float(getattr(self, 'loss_' + name))
+                cur_loss = float(getattr(self, f'loss_{name}'))
                 # cur_loss_lambda = 1. if len(losses_name) == 1 else float(getattr(self.opt, 'lambda_' + name))
                 # errors_ret[name] = cur_loss * cur_loss_lambda
                 errors_ret[name] = cur_loss
@@ -96,15 +93,14 @@ class BaseModel:
     def update_learning_rate(self):
         for scheduler in self.schedulers:
             scheduler.step()
-        lr = self.optims[0].param_groups[0]['lr']
-        return lr
+        return self.optims[0].param_groups[0]['lr']
 
     def save_ckpt(self, epoch, models_name):
         for name in models_name:
             if isinstance(name, str):
-                save_filename = '%s_net_%s.pth' % (epoch, name)
+                save_filename = f'{epoch}_net_{name}.pth'
                 save_path = os.path.join(self.opt.ckpt_dir, save_filename)
-                net = getattr(self, 'net_' + name)
+                net = getattr(self, f'net_{name}')
                 # save cpu params, so that it can be used in other GPU settings
                 if len(self.gpu_ids) > 0 and torch.cuda.is_available():
                     torch.save(net.module.cpu().state_dict(), save_path)
@@ -117,16 +113,18 @@ class BaseModel:
         # print(models_name)
         for name in models_name:
             if isinstance(name, str):
-                load_filename = '%s_net_%s.pth' % (epoch, name)
+                load_filename = f'{epoch}_net_{name}.pth'
                 # load_path = os.path.join(self.opt.ckpt_dir, load_filename)
                 # assert os.path.isfile(load_path), "File '%s' does not exist." % load_path
-                
+
                 # pretrained_state_dict = torch.load(load_path, map_location=str(self.device))
-                pretrained_state_dict = torch.load('checkpoints/30_net_gen.pth', map_location=str('cuda:0'))
+                pretrained_state_dict = torch.load(
+                    'checkpoints/30_net_gen.pth', map_location='cuda:0'
+                )
                 if hasattr(pretrained_state_dict, '_metadata'):
                     del pretrained_state_dict._metadata
 
-                net = getattr(self, 'net_' + name)
+                net = getattr(self, f'net_{name}')
                 if isinstance(net, torch.nn.DataParallel):
                     net = net.module
                 # load only existing keys
@@ -135,12 +133,12 @@ class BaseModel:
                 #     print(k)
                 # assert False
                 net.load_state_dict(pretrained_dict)
-                print("[Info] Successfully load trained weights for net_%s." % name)
+                print(f"[Info] Successfully load trained weights for net_{name}.")
 
     def clean_ckpt(self, epoch, models_name):
         for name in models_name:
             if isinstance(name, str):
-                load_filename = '%s_net_%s.pth' % (epoch, name)
+                load_filename = f'{epoch}_net_{name}.pth'
                 load_path = os.path.join(self.opt.ckpt_dir, load_filename)
                 if os.path.isfile(load_path):
                     os.remove(load_path)

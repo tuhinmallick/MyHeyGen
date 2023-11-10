@@ -70,7 +70,7 @@ class MaxClipGradScaler(GradScaler):
         def apply_scale(val):
             if isinstance(val, torch.Tensor):
                 assert val.is_cuda
-                if len(stash) == 0:
+                if not stash:
                     if self._scale is None:
                         self._lazy_init_scale_growth_tracker(val.device)
                     assert self._scale is not None
@@ -78,10 +78,7 @@ class MaxClipGradScaler(GradScaler):
                 return val * stash[0].get(val.device)
             elif isinstance(val, Iterable):
                 iterable = map(apply_scale, val)
-                if isinstance(val, list) or isinstance(val, tuple):
-                    return type(val)(iterable)
-                else:
-                    return iterable
+                return type(val)(iterable) if isinstance(val, (list, tuple)) else iterable
             else:
                 raise ValueError("outputs must be a Tensor or an iterable of Tensors")
 

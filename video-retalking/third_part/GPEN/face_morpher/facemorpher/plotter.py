@@ -64,7 +64,7 @@ class Plotter(object):
       filename = self.out_filename
 
     mpimg.imsave(filename, bgr2rgb(img))
-    print(filename + ' saved')
+    print(f'{filename} saved')
 
   @check_do_plot
   def plot_one(self, img):

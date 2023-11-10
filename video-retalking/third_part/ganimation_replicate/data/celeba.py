@@ -13,14 +13,16 @@ class CelebADataset(BaseDataset):
         super(CelebADataset, self).initialize(opt)
 
     def get_aus_by_path(self, img_path):
-        assert os.path.isfile(img_path), "Cannot find image file: %s" % img_path
+        assert os.path.isfile(img_path), f"Cannot find image file: {img_path}"
         img_id = str(os.path.splitext(os.path.basename(img_path))[0])
         return self.aus_dict[img_id] / 5.0   # norm to [0, 1]
 
     def make_dataset(self):
         # return all image full path in a list
         imgs_path = []
-        assert os.path.isfile(self.imgs_name_file), "%s does not exist." % self.imgs_name_file
+        assert os.path.isfile(
+            self.imgs_name_file
+        ), f"{self.imgs_name_file} does not exist."
         with open(self.imgs_name_file, 'r') as f:
             lines = f.readlines()
             imgs_path = [os.path.join(self.imgs_dir, line.strip()) for line in lines]
@@ -43,8 +45,11 @@ class CelebADataset(BaseDataset):
         if self.is_train and not self.opt.no_aus_noise:
             tar_aus = tar_aus + np.random.uniform(-0.1, 0.1, tar_aus.shape)
 
-        # record paths for debug and test usage
-        data_dict = {'src_img':src_img_tensor, 'src_aus':src_aus, 'tar_img':tar_img_tensor, 'tar_aus':tar_aus, \
-                        'src_path':img_path, 'tar_path':tar_img_path}
-
-        return data_dict
+        return {
+            'src_img': src_img_tensor,
+            'src_aus': src_aus,
+            'tar_img': tar_img_tensor,
+            'tar_aus': tar_aus,
+            'src_path': img_path,
+            'tar_path': tar_img_path,
+        }

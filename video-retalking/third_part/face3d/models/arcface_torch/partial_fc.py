@@ -48,7 +48,7 @@ class PartialFC(Module):
         self.num_classes: int = num_classes
         self.rank: int = rank
         self.local_rank: int = local_rank
-        self.device: torch.device = torch.device("cuda:{}".format(self.local_rank))
+        self.device: torch.device = torch.device(f"cuda:{self.local_rank}")
         self.world_size: int = world_size
         self.batch_size: int = batch_size
         self.margin_softmax: callable = margin_softmax
@@ -59,8 +59,12 @@ class PartialFC(Module):
         self.class_start: int = num_classes // world_size * rank + min(rank, num_classes % world_size)
         self.num_sample: int = int(self.sample_rate * self.num_local)
 
-        self.weight_name = os.path.join(self.prefix, "rank_{}_softmax_weight.pt".format(self.rank))
-        self.weight_mom_name = os.path.join(self.prefix, "rank_{}_softmax_weight_mom.pt".format(self.rank))
+        self.weight_name = os.path.join(
+            self.prefix, f"rank_{self.rank}_softmax_weight.pt"
+        )
+        self.weight_mom_name = os.path.join(
+            self.prefix, f"rank_{self.rank}_softmax_weight_mom.pt"
+        )
 
         if resume:
             try:
@@ -126,8 +130,7 @@ class PartialFC(Module):
         """ Partial fc forward, `logits = X * sample(W)`
         """
         torch.cuda.current_stream().wait_stream(self.stream)
-        logits = linear(total_features, norm_weight)
-        return logits
+        return linear(total_features, norm_weight)
 
     @torch.no_grad()
     def update(self):

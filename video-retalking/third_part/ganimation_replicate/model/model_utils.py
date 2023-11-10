@@ -27,7 +27,7 @@ def get_norm_layer(norm_type='instance'):
     elif norm_type == 'none':
         norm_layer = None
     else:
-        raise NotImplementedError('normalization layer [%s] is not found' % norm_type)
+        raise NotImplementedError(f'normalization layer [{norm_type}] is not found')
     return norm_layer
 
 
@@ -59,14 +59,16 @@ def init_weights(net, init_type='normal', gain=0.02):
             elif init_type == 'orthogonal':
                 init.orthogonal_(m.weight.data, gain=gain)
             else:
-                raise NotImplementedError('initialization method [%s] is not implemented' % init_type)
+                raise NotImplementedError(
+                    f'initialization method [{init_type}] is not implemented'
+                )
             if hasattr(m, 'bias') and m.bias is not None:
                 init.constant_(m.bias.data, 0.0)
         elif classname.find('BatchNorm2d') != -1:
             init.normal_(m.weight.data, 1.0, gain)
             init.constant_(m.bias.data, 0.0)
 
-    print('initialize network with %s' % init_type)
+    print(f'initialize network with {init_type}')
     net.apply(init_func)
 
 
@@ -93,7 +95,9 @@ def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropo
     elif which_model_netG == 'unet_256':
         netG = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
     else:
-        raise NotImplementedError('Generator model name [%s] is not recognized' % which_model_netG)
+        raise NotImplementedError(
+            f'Generator model name [{which_model_netG}] is not recognized'
+        )
     return init_net(netG, init_type, init_gain, gpu_ids)
 
 
@@ -109,8 +113,9 @@ def define_D(input_nc, ndf, which_model_netD,
     elif which_model_netD == 'pixel':
         netD = PixelDiscriminator(input_nc, ndf, norm_layer=norm_layer, use_sigmoid=use_sigmoid)
     else:
-        raise NotImplementedError('Discriminator model name [%s] is not recognized' %
-                                  which_model_netD)
+        raise NotImplementedError(
+            f'Discriminator model name [{which_model_netD}] is not recognized'
+        )
     return init_net(netD, init_type, init_gain, gpu_ids)
 
 
@@ -136,13 +141,10 @@ class GANLoss(nn.Module):
         elif self.gan_type == 'gan':
             self.loss = nn.BCELoss()
         else:
-            raise NotImplementedError('GAN loss type [%s] is not found' % gan_type)
+            raise NotImplementedError(f'GAN loss type [{gan_type}] is not found')
 
     def get_target_tensor(self, input, target_is_real):
-        if target_is_real:
-            target_tensor = self.real_label
-        else:
-            target_tensor = self.fake_label
+        target_tensor = self.real_label if target_is_real else self.fake_label
         return target_tensor.expand_as(input)
 
     def __call__(self, input, target_is_real):
@@ -221,7 +223,7 @@ class ResnetBlock(nn.Module):
         elif padding_type == 'zero':
             p = 1
         else:
-            raise NotImplementedError('padding [%s] is not implemented' % padding_type)
+            raise NotImplementedError(f'padding [{padding_type}] is not implemented')
 
         conv_block += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
                        norm_layer(dim),
@@ -237,15 +239,14 @@ class ResnetBlock(nn.Module):
         elif padding_type == 'zero':
             p = 1
         else:
-            raise NotImplementedError('padding [%s] is not implemented' % padding_type)
+            raise NotImplementedError(f'padding [{padding_type}] is not implemented')
         conv_block += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
                        norm_layer(dim)]
 
         return nn.Sequential(*conv_block)
 
     def forward(self, x):
-        out = x + self.conv_block(x)
-        return out
+        return x + self.conv_block(x)
 
 
 # Defines the Unet generator.
@@ -259,7 +260,7 @@ class UnetGenerator(nn.Module):
 
         # construct unet structure
         unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, norm_layer=norm_layer, innermost=True)
-        for i in range(num_downs - 5):
+        for _ in range(num_downs - 5):
             unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
         unet_block = UnetSkipConnectionBlock(ngf * 4, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
         unet_block = UnetSkipConnectionBlock(ngf * 2, ngf * 4, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
@@ -322,10 +323,7 @@ class UnetSkipConnectionBlock(nn.Module):
         self.model = nn.Sequential(*model)
 
     def forward(self, x):
-        if self.outermost:
-            return self.model(x)
-        else:
-            return torch.cat([x, self.model(x)], 1)
+        return self.model(x) if self.outermost else torch.cat([x, self.model(x)], 1)
 
 
 # Defines the PatchGAN discriminator with the specified arguments.
@@ -498,7 +496,7 @@ class SplitDiscriminator(nn.Module):
         ]
 
         cur_dim = ndf
-        for n in range(1, n_layers):
+        for _ in range(1, n_layers):
             sequence += [
                 nn.Conv2d(cur_dim, 2 * cur_dim,
                           kernel_size=kw, stride=2, padding=padw, bias=use_bias),

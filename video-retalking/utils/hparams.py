@@ -9,7 +9,7 @@ class HParams:
 
 	def __getattr__(self, key):
 		if key not in self.data:
-			raise AttributeError("'HParams' object has no attribute %s" % key)
+			raise AttributeError(f"'HParams' object has no attribute {key}")
 		return self.data[key]
 
 	def set_hparam(self, key, value):
@@ -133,5 +133,9 @@ hparamsdebug = HParams(
 
 def hparams_debug_string():
 	values = hparams.values()
-	hp = ["  %s: %s" % (name, values[name]) for name in sorted(values) if name != "sentences"]
+	hp = [
+		f"  {name}: {values[name]}"
+		for name in sorted(values)
+		if name != "sentences"
+	]
 	return "Hyperparameters:\n" + "\n".join(hp)

@@ -133,9 +133,7 @@ class StyleConv(nn.Module):
         out = out + self.weight * noise
         # add bias
         out = out + self.bias
-        # activation
-        out = self.activate(out)
-        return out
+        return self.activate(out)
 
 
 class ToRGB(nn.Module):
@@ -187,8 +185,7 @@ class ConstantInput(nn.Module):
         self.weight = nn.Parameter(torch.randn(1, num_channel, size, size))
 
     def forward(self, batch):
-        out = self.weight.repeat(batch, 1, 1, 1)
-        return out
+        return self.weight.repeat(batch, 1, 1, 1)
 
 
 @ARCH_REGISTRY.register()
@@ -208,7 +205,7 @@ class StyleGAN2GeneratorClean(nn.Module):
         # Style MLP layers
         self.num_style_feat = num_style_feat
         style_mlp_layers = [NormStyleCode()]
-        for i in range(num_mlp):
+        for _ in range(num_mlp):
             style_mlp_layers.extend(
                 [nn.Linear(num_style_feat, num_style_feat, bias=True),
                  nn.LeakyReLU(negative_slope=0.2, inplace=True)])
@@ -282,9 +279,7 @@ class StyleGAN2GeneratorClean(nn.Module):
         noises = [torch.randn(1, 1, 4, 4, device=device)]
 
         for i in range(3, self.log_size + 1):
-            for _ in range(2):
-                noises.append(torch.randn(1, 1, 2**i, 2**i, device=device))
-
+            noises.extend(torch.randn(1, 1, 2**i, 2**i, device=device) for _ in range(2))
         return noises
 
     def get_latent(self, x):
@@ -292,8 +287,7 @@ class StyleGAN2GeneratorClean(nn.Module):
 
     def mean_latent(self, num_latent):
         latent_in = torch.randn(num_latent, self.num_style_feat, device=self.constant_input.weight.device)
-        latent = self.style_mlp(latent_in).mean(0, keepdim=True)
-        return latent
+        return self.style_mlp(latent_in).mean(0, keepdim=True)
 
     def forward(self,
                 styles,
@@ -327,9 +321,10 @@ class StyleGAN2GeneratorClean(nn.Module):
                 noise = [getattr(self.noises, f'noise{i}') for i in range(self.num_layers)]
         # style truncation
         if truncation < 1:
-            style_truncation = []
-            for style in styles:
-                style_truncation.append(truncation_latent + truncation * (style - truncation_latent))
+            style_truncation = [
+                truncation_latent + truncation * (style - truncation_latent)
+                for style in styles
+            ]
             styles = style_truncation
         # get style latents with injection
         if len(styles) == 1:
@@ -362,7 +357,4 @@ class StyleGAN2GeneratorClean(nn.Module):
 
         image = skip
 
-        if return_latents:
-            return image, latent
-        else:
-            return image, None
+        return (image, latent) if return_latents else (image, None)

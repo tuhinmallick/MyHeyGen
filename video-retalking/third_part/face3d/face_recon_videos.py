@@ -16,8 +16,8 @@ from util.util import mkdirs, tensor2im, save_image
 
 
 def get_data_path(root, keypoint_root):
-    filenames = list()
-    keypoint_filenames = list()
+    filenames = []
+    keypoint_filenames = []
 
     VIDEO_EXTENSIONS_LOWERCASE = {'mp4'}
     VIDEO_EXTENSIONS = VIDEO_EXTENSIONS_LOWERCASE.union({f.upper() for f in VIDEO_EXTENSIONS_LOWERCASE})
@@ -45,11 +45,11 @@ class VideoPathDataset(torch.utils.data.Dataset):
         txt_filename = self.txt_filenames[index]
         frames = self.read_video(filename)
         lm = np.loadtxt(txt_filename).astype(np.float32)
-        lm = lm.reshape([len(frames), -1, 2]) 
-        out_images, out_trans_params = list(), list()
+        lm = lm.reshape([len(frames), -1, 2])
+        out_images, out_trans_params = [], []
         for i in range(len(frames)):
             out_img, _, out_trans_param \
-                = self.image_transform(frames[i], lm[i])
+                    = self.image_transform(frames[i], lm[i])
             out_images.append(out_img[None])
             out_trans_params.append(out_trans_param[None])
         return {
@@ -59,7 +59,7 @@ class VideoPathDataset(torch.utils.data.Dataset):
         }
         
     def read_video(self, filename):
-        frames = list()
+        frames = []
         cap = cv2.VideoCapture(filename)
         while cap.isOpened():
             ret, frame = cap.read()
@@ -100,16 +100,16 @@ def main(opt, model):
         shuffle=False,
         drop_last=False,
         num_workers=0,
-    )     
+    )
     batch_size = opt.inference_batch_size
     for data in tqdm(dataloader):
         num_batch = data['imgs'][0].shape[0] // batch_size + 1
-        pred_coeffs = list()
+        pred_coeffs = []
         for index in range(num_batch):
             data_input = {                
                 'imgs': data['imgs'][0,index*batch_size:(index+1)*batch_size],
             }
-            model.set_input(data_input)  
+            model.set_input(data_input)
             model.test()
             pred_coeff = {key:model.pred_coeffs_dict[key].cpu().numpy() for key in model.pred_coeffs_dict}
             pred_coeff = np.concatenate([
@@ -119,25 +119,12 @@ def main(opt, model):
                 pred_coeff['angle'],
                 pred_coeff['gamma'],
                 pred_coeff['trans']], 1)
-            pred_coeffs.append(pred_coeff) 
+            pred_coeffs.append(pred_coeff)
             visuals = model.get_current_visuals()  # get image results
-            if False: # debug
-                for name in visuals:
-                    images = visuals[name]
-                    for i in range(images.shape[0]):
-                        image_numpy = tensor2im(images[i])
-                        save_image(
-                            image_numpy, 
-                            os.path.join(
-                                opt.output_dir,
-                                os.path.basename(data['filename'][0])+str(i).zfill(5)+'.jpg')
-                            )
-                exit()
-
         pred_coeffs = np.concatenate(pred_coeffs, 0)
         pred_trans_params = data['trans_param'][0].cpu().numpy()
         name = data['filename'][0].split('/')[-2:]
-        name[-1] = os.path.splitext(name[-1])[0] + '.mat'
+        name[-1] = f'{os.path.splitext(name[-1])[0]}.mat'
         os.makedirs(os.path.join(opt.output_dir, name[-2]), exist_ok=True)
         savemat(
             os.path.join(opt.output_dir, name[-2], name[-1]), 

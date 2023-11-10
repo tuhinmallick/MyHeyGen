@@ -26,17 +26,13 @@ def merge(audio_filename, avi_filename, out_filename):
     if audio_duration > video_duration:
         temp_manager = TempFileManager()
         temp_wav = temp_manager.create_temp_file(suffix='.wav').name
-        command = 'ffmpeg -i {} -ss 00:00:00 -to {} -c copy {}'.format(
-            audio_filename, duration, temp_wav
-        )
+        command = f'ffmpeg -i {audio_filename} -ss 00:00:00 -to {duration} -c copy {temp_wav}'
         subprocess.call(command, shell=True)
         audio_filename = temp_wav
     else:
         duration = format_duration(audio_duration)
 
-    command = 'ffmpeg -y -i {} -i {} -ss 00:00:00.000 -to {} -strict -2 -q:v 1 {} -loglevel {}'.format(
-        audio_filename, avi_filename, duration, out_filename, 'verbose'
-    )
+    command = f'ffmpeg -y -i {audio_filename} -i {avi_filename} -ss 00:00:00.000 -to {duration} -strict -2 -q:v 1 {out_filename} -loglevel verbose'
     subprocess.call(command, shell=True)
 
 def to_avi(frames, fps):
@@ -73,19 +69,15 @@ def to_extended_frames(frames, speakers, fps, get_face_on_frame):
             'has_face': False
         }
         if person_id:
-            face_dict = get_face_on_frame(person_id, frame_id)
-            if face_dict:
+            if face_dict := get_face_on_frame(person_id, frame_id):
                 extended_frames[frame_id]['has_face'] = True
                 extended_frames[frame_id]['face'] = face_dict['face']
                 extended_frames[frame_id]['bbox'] = face_dict['bbox']
-            
+
     return extended_frames
 
 def get_voice_segments(speakers):
-    segments = []
-    for speaker in speakers:
-        segments.append((speaker['start'], speaker['end']))
-    return segments
+    return [(speaker['start'], speaker['end']) for speaker in speakers]
 
 def find_speaker(groups):
     if groups:
@@ -98,11 +90,11 @@ def merge_voices(transcriptions, voice_audio):
 
     for transcription in transcriptions:
         if 'id' in transcription:
-            if not transcription['id'] in speakers_dict:
+            if transcription['id'] not in speakers_dict:
                 speakers_dict[transcription['id']] = AudioSegment.silent(duration=0)
             sub_voice = voice_audio[transcription['start'] * 1000: transcription['end'] * 1000]
             speakers_dict[transcription['id']] += sub_voice
-        
+
     return speakers_dict
 
 def get_timestaps(words):

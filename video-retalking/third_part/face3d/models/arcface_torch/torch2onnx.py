@@ -55,5 +55,5 @@ if __name__ == '__main__':
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     assert os.path.isdir(output_path)
-    output_file = os.path.join(output_path, "%s.onnx" % model_name)
+    output_file = os.path.join(output_path, f"{model_name}.onnx")
     convert_onnx(backbone_onnx, input_file, output_file, simplify=args.simplify)

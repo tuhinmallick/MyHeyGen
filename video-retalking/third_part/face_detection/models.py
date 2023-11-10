@@ -105,34 +105,36 @@ class HourGlass(nn.Module):
         self._generate_network(self.depth)
 
     def _generate_network(self, level):
-        self.add_module('b1_' + str(level), ConvBlock(self.features, self.features))
+        self.add_module(f'b1_{str(level)}', ConvBlock(self.features, self.features))
 
-        self.add_module('b2_' + str(level), ConvBlock(self.features, self.features))
+        self.add_module(f'b2_{str(level)}', ConvBlock(self.features, self.features))
 
         if level > 1:
             self._generate_network(level - 1)
         else:
-            self.add_module('b2_plus_' + str(level), ConvBlock(self.features, self.features))
+            self.add_module(
+                f'b2_plus_{str(level)}', ConvBlock(self.features, self.features)
+            )
 
-        self.add_module('b3_' + str(level), ConvBlock(self.features, self.features))
+        self.add_module(f'b3_{str(level)}', ConvBlock(self.features, self.features))
 
     def _forward(self, level, inp):
         # Upper branch
         up1 = inp
-        up1 = self._modules['b1_' + str(level)](up1)
+        up1 = self._modules[f'b1_{str(level)}'](up1)
 
         # Lower branch
         low1 = F.avg_pool2d(inp, 2, stride=2)
-        low1 = self._modules['b2_' + str(level)](low1)
+        low1 = self._modules[f'b2_{str(level)}'](low1)
 
         if level > 1:
             low2 = self._forward(level - 1, low1)
         else:
             low2 = low1
-            low2 = self._modules['b2_plus_' + str(level)](low2)
+            low2 = self._modules[f'b2_plus_{str(level)}'](low2)
 
         low3 = low2
-        low3 = self._modules['b3_' + str(level)](low3)
+        low3 = self._modules[f'b3_{str(level)}'](low3)
 
         up2 = F.interpolate(low3, scale_factor=2, mode='nearest')
 
@@ -157,19 +159,27 @@ class FAN(nn.Module):
 
         # Stacking part
         for hg_module in range(self.num_modules):
-            self.add_module('m' + str(hg_module), HourGlass(1, 4, 256))
-            self.add_module('top_m_' + str(hg_module), ConvBlock(256, 256))
-            self.add_module('conv_last' + str(hg_module),
-                            nn.Conv2d(256, 256, kernel_size=1, stride=1, padding=0))
-            self.add_module('bn_end' + str(hg_module), nn.BatchNorm2d(256))
-            self.add_module('l' + str(hg_module), nn.Conv2d(256,
-                                                            68, kernel_size=1, stride=1, padding=0))
+            self.add_module(f'm{str(hg_module)}', HourGlass(1, 4, 256))
+            self.add_module(f'top_m_{str(hg_module)}', ConvBlock(256, 256))
+            self.add_module(
+                f'conv_last{str(hg_module)}',
+                nn.Conv2d(256, 256, kernel_size=1, stride=1, padding=0),
+            )
+            self.add_module(f'bn_end{str(hg_module)}', nn.BatchNorm2d(256))
+            self.add_module(
+                f'l{str(hg_module)}',
+                nn.Conv2d(256, 68, kernel_size=1, stride=1, padding=0),
+            )
 
             if hg_module < self.num_modules - 1:
                 self.add_module(
-                    'bl' + str(hg_module), nn.Conv2d(256, 256, kernel_size=1, stride=1, padding=0))
-                self.add_module('al' + str(hg_module), nn.Conv2d(68,
-                                                                 256, kernel_size=1, stride=1, padding=0))
+                    f'bl{str(hg_module)}',
+                    nn.Conv2d(256, 256, kernel_size=1, stride=1, padding=0),
+                )
+                self.add_module(
+                    f'al{str(hg_module)}',
+                    nn.Conv2d(68, 256, kernel_size=1, stride=1, padding=0),
+                )
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(x)), True)
@@ -181,21 +191,25 @@ class FAN(nn.Module):
 
         outputs = []
         for i in range(self.num_modules):
-            hg = self._modules['m' + str(i)](previous)
+            hg = self._modules[f'm{str(i)}'](previous)
 
             ll = hg
-            ll = self._modules['top_m_' + str(i)](ll)
+            ll = self._modules[f'top_m_{str(i)}'](ll)
 
-            ll = F.relu(self._modules['bn_end' + str(i)]
-                        (self._modules['conv_last' + str(i)](ll)), True)
+            ll = F.relu(
+                self._modules[f'bn_end{str(i)}'](
+                    self._modules[f'conv_last{str(i)}'](ll)
+                ),
+                True,
+            )
 
             # Predict heatmaps
-            tmp_out = self._modules['l' + str(i)](ll)
+            tmp_out = self._modules[f'l{str(i)}'](ll)
             outputs.append(tmp_out)
 
             if i < self.num_modules - 1:
-                ll = self._modules['bl' + str(i)](ll)
-                tmp_out_ = self._modules['al' + str(i)](tmp_out)
+                ll = self._modules[f'bl{str(i)}'](ll)
+                tmp_out_ = self._modules[f'al{str(i)}'](tmp_out)
                 previous = previous + ll + tmp_out_
 
         return outputs
@@ -235,12 +249,9 @@ class ResNetDepth(nn.Module):
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers = [block(self.inplanes, planes, stride, downsample)]
         self.inplanes = planes * block.expansion
-        for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
-
+        layers.extend(block(self.inplanes, planes) for _ in range(1, blocks))
         return nn.Sequential(*layers)
 
     def forward(self, x):

@@ -54,9 +54,9 @@ def cut_video_segments(video_file, segment_length):
                "segment", "-segment_time", str(segment_length), segment_template]
     subprocess.run(command, check=True)
 
-    video_segments = [segment_template %
-                      i for i in range(len(os.listdir(temp_directory)))]
-    return video_segments
+    return [
+        segment_template % i for i in range(len(os.listdir(temp_directory)))
+    ]
 
 
 def cut_audio_segments(audio_file, segment_length):
@@ -68,9 +68,9 @@ def cut_audio_segments(audio_file, segment_length):
                "-segment_time", str(segment_length), segment_template]
     subprocess.run(command, check=True)
 
-    audio_segments = [segment_template %
-                      i for i in range(len(os.listdir(temp_directory)))]
-    return audio_segments
+    return [
+        segment_template % i for i in range(len(os.listdir(temp_directory)))
+    ]
 
 
 def process_segment(video_seg, audio_seg, i):

@@ -10,10 +10,7 @@ def positive_cap(num):
   :param num: positive or negative number
   :returns: (overflow, capped_number)
   """
-  if num < 0:
-    return 0, abs(num)
-  else:
-    return num, 0
+  return (0, abs(num)) if num < 0 else (num, 0)
 
 def roi_coordinates(rect, size, scale):
   """ Align the rectangle into the center and return the top-left coordinates
@@ -51,11 +48,10 @@ def scaling_factor(rect, size):
   scale = 1
   if height_ratio > width_ratio:
     new_recth = 0.8 * new_height
-    scale = new_recth / rect_h
+    return new_recth / rect_h
   else:
     new_rectw = 0.8 * new_width
-    scale = new_rectw / rect_w
-  return scale
+    return new_rectw / rect_w
 
 def resize_image(img, scale):
   """ Resize image with the provided scaling factor

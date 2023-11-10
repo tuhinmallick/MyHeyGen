@@ -33,7 +33,7 @@ class Engine:
         #if not config['HF_TOKEN']:
            # raise Exception('No HuggingFace token providen!')
         self.output_language = output_language
-        print("output_language:{}".format(output_language))
+        print(f"output_language:{output_language}")
         self.config = config
         device_type = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.device = torch.device(device_type)
@@ -43,14 +43,14 @@ class Engine:
         self.text_helper = TextHelper(config)
         self.temp_manager = TempFileManager()
         self.speaker_num = config["SPEAKER_NUM"]
-        
+
         if self.speaker_num > 1: 
             self.scene_processor = ScenePreprocessor(config)
             self.lip_sync = LipSync()
             print("You can change SPEAKER_NUM as 1 in config.json to disable scene_processor")
         else:
             print("default speaker num is 1, you can change SPEAKER_NUM in config.json to enable scene_processor")
-        
+
         self.dereverb = MDXNetDereverb(15)
     
     def __call__(self, video_file_path, output_file_path):
@@ -66,7 +66,7 @@ class Engine:
 
         speakers, lang = self.transcribe_audio_extended(dereverb_out['voice_file'])
         # ---------------------------------------------------------------------------------------------------
-        
+
         if self.speaker_num > 1: 
             # [Step 2] Getting voice segments, frames, do face detection + reidentification ---------------------
 
@@ -114,20 +114,20 @@ class Engine:
                 voice = merged_voices[speaker['id']]
             else:
                 voice = voice_audio[speaker['start'] * 1000: speaker['end'] * 1000]
-            
+
             voice_wav = self.temp_manager.create_temp_file(suffix='.wav').name
             voice.export(voice_wav, format='wav')
-            
+
             voice_audio_wav = self.temp_manager.create_temp_file(suffix='.wav').name
             voice_audio.export(voice_audio_wav, format='wav')
 
             dst_text = self.text_helper.translate(speaker['text'], src_lang=lang, dst_lang=self.output_language)
-            
+
             with open(zimu_path, 'a', encoding="utf-8") as f:
                 f.write("\n" + speaker['text'])
                 f.write("\n" + dst_text)
                 f.write("\n")
-                
+
             cloned_wav = cloner.process(
                 speaker_wav_filename=[voice_wav,voice_audio_wav],
                 text=dst_text
@@ -151,7 +151,7 @@ class Engine:
         # [Step 5] Creating final speech audio --------------------------------------------------------------
         print("[Step 5] Creating final speech audio")
         original_audio_duration = voice_audio.duration_seconds * 1000
-        
+
         segments = to_segments(updates, original_audio_duration)
 
         speech_audio = AudioSegment.silent(duration=0)
@@ -161,7 +161,7 @@ class Engine:
                 speech_audio += AudioSegment.silent(duration=duration)
             else:
                 speech_audio += AudioSegment.from_file(segment['voice'])
-        
+
         speech_audio_wav = self.temp_manager.create_temp_file(suffix='.wav').name
         speech_audio.export(speech_audio_wav, format='wav')
         # ---------------------------------------------------------------------------------------------------
@@ -172,7 +172,7 @@ class Engine:
 
             all_frames = self.scene_processor.get_frames()
             for frame_id, frame in all_frames.items():
-                if not frame_id in frames:
+                if frame_id not in frames:
                     frames[frame_id] = {
                         'frame': np.array(frame)
                     }
@@ -192,7 +192,6 @@ class Engine:
             combined_audio = combine_audio(speech_audio_wav, noise_audio_wav)
 
             merge(combined_audio, temp_result_avi, output_file_path)
-        # ---------------------------------------------------------------------------------------------------
         else:
             # [Step 6] Using video-retalking merge speech voice and video, creating output ------------------------------------------
             print("Video-retalking merge speech voice and video, creating output!!!")
@@ -213,7 +212,7 @@ class Engine:
         self.diarize_model = None
         self.dereverb = None
         torch.cuda.empty_cache()
-        print("cuda memeroy:{}".format(torch.cuda.memory_reserved()))
+        print(f"cuda memeroy:{torch.cuda.memory_reserved()}")
         print("You may need CTRL+C here!")
         
     def transcribe_audio_extended(self, audio_file):

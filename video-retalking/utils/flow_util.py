@@ -11,8 +11,7 @@ def convert_flow_to_deformation(flow):
     b,c,h,w = flow.shape
     flow_norm = 2 * torch.cat([flow[:,:1,...]/(w-1),flow[:,1:,...]/(h-1)], 1)
     grid = make_coordinate_grid(flow)
-    deformation = grid + flow_norm.permute(0,2,3,1)
-    return deformation
+    return grid + flow_norm.permute(0,2,3,1)
 
 def make_coordinate_grid(flow):
     r"""obtain coordinate grid with the same size as the flow filed.

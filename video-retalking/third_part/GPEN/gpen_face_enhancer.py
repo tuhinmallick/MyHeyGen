@@ -69,14 +69,10 @@ class FaceEnhancement(object):
             of, tfm_inv = warp_and_crop_face(img, facial5points, reference_pts=self.reference_5pts, crop_size=(self.size, self.size))
 
             # enhance the face
-            if face_enhance:
-                ef = self.facegan.process(of)
-            else:
-                ef = of
-                    
+            ef = self.facegan.process(of) if face_enhance else of
             orig_faces.append(of)
             enhanced_faces.append(ef)
-            
+
             # print(ef.shape)
             # tmp_mask = self.mask
             '''
@@ -101,7 +97,7 @@ class FaceEnhancement(object):
 
             if min(fh, fw)<100: # gaussian filter for small faces
                 ef = cv2.filter2D(ef, -1, self.kernel)
-            
+
             if face_enhance:
                 tmp_img = cv2.warpAffine(ef, tfm_inv, (width, height), flags=3)
             else:
@@ -118,7 +114,7 @@ class FaceEnhancement(object):
 
         if self.use_sr and img_sr is not None:
             img = cv2.convertScaleAbs(img_sr*(1-full_mask) + full_img*full_mask)
-        
+
         elif possion_blending is True:
             if bbox is not None:
                 y1, y2, x1, x2 = bbox
@@ -127,7 +123,7 @@ class FaceEnhancement(object):
                 full_img, ori_img, full_mask = [cv2.resize(x,(512,512)) for x in (full_img, ori_img, np.float32(mask_sharp * mask_bbox))]
             else:
                 full_img, ori_img, full_mask = [cv2.resize(x,(512,512)) for x in (full_img, ori_img, full_mask)]
-            
+
             img = Laplacian_Pyramid_Blending_with_mask(full_img, ori_img, full_mask, 6)
             img = np.clip(img, 0 ,255)
             img = np.uint8(cv2.resize(img, (width, height)))

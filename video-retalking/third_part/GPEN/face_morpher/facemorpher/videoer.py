@@ -10,8 +10,7 @@ def check_write_video(func):
   def inner(self, *args, **kwargs):
     if self.video:
       return func(self, *args, **kwargs)
-    else:
-      pass
+
   return inner
 
 
@@ -27,10 +26,10 @@ class Video(object):
 
   @check_write_video
   def write(self, img, num_times=1):
-    for i in range(num_times):
+    for _ in range(num_times):
       self.video.write(img[..., :3])
 
   @check_write_video
   def end(self):
-    print(self.filename + ' saved')
+    print(f'{self.filename} saved')
     self.video.release()

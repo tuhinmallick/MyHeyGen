@@ -43,7 +43,7 @@ class BaseDataset(torch.utils.data.Dataset):
         return saved_dict
 
     def get_img_by_path(self, img_path):
-        assert os.path.isfile(img_path), "Cannot find image file: %s" % img_path
+        assert os.path.isfile(img_path), f"Cannot find image file: {img_path}"
         img_type = 'L' if self.opt.img_nc == 1 else 'RGB'
         return Image.open(img_path).convert(img_type)
 
@@ -53,24 +53,33 @@ class BaseDataset(torch.utils.data.Dataset):
     def img_transformer(self):
         transform_list = []
         if self.opt.resize_or_crop == 'resize_and_crop':
-            transform_list.append(transforms.Resize([self.opt.load_size, self.opt.load_size], Image.BICUBIC))
-            transform_list.append(transforms.RandomCrop(self.opt.final_size))
+            transform_list.extend(
+                (
+                    transforms.Resize(
+                        [self.opt.load_size, self.opt.load_size], Image.BICUBIC
+                    ),
+                    transforms.RandomCrop(self.opt.final_size),
+                )
+            )
         elif self.opt.resize_or_crop == 'crop':
             transform_list.append(transforms.RandomCrop(self.opt.final_size))
         elif self.opt.resize_or_crop == 'none':
             transform_list.append(transforms.Lambda(lambda image: image))
         else:
-            raise ValueError("--resize_or_crop %s is not a valid option." % self.opt.resize_or_crop)
+            raise ValueError(
+                f"--resize_or_crop {self.opt.resize_or_crop} is not a valid option."
+            )
 
         if self.is_train and not self.opt.no_flip:
             transform_list.append(transforms.RandomHorizontalFlip())
 
-        transform_list.append(transforms.ToTensor())
-        transform_list.append(transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)))
-
-        img2tensor = transforms.Compose(transform_list)
-
-        return img2tensor
+        transform_list.extend(
+            (
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            )
+        )
+        return transforms.Compose(transform_list)
 
     def __len__(self):
         return len(self.imgs_path)

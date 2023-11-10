@@ -88,7 +88,7 @@ class Predictor:
             device=self.device, dim_f=args.dim_f, dim_t=args.dim_t, n_fft=args.n_fft
         )
         self.model = ort.InferenceSession(
-            os.path.join(args.onnx, self.model_.target_name + '.onnx'),
+            os.path.join(args.onnx, f'{self.model_.target_name}.onnx'),
             providers=['CUDAExecutionProvider', 'CPUExecutionProvider'],
         )
         print('onnx load done')
@@ -97,10 +97,8 @@ class Predictor:
         samples = mix.shape[-1]
         margin = self.args.margin
         chunk_size = self.args.chunks * 44100
-        assert not margin == 0, 'margin cannot be zero!'
-        if margin > chunk_size:
-            margin = chunk_size
-
+        assert margin != 0, 'margin cannot be zero!'
+        margin = min(margin, chunk_size)
         segmented_mix = {}
 
         if self.args.chunks == 0 or samples < chunk_size:

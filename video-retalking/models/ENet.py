@@ -51,13 +51,9 @@ class ENet(nn.Module):
         self.style_convs = nn.ModuleList()
         self.to_rgbs = nn.ModuleList()
         self.noises = nn.Module()
-        
-        self.concat = concat
-        if concat:
-            in_channels = 3 + 32 # channels['64']
-        else:
-            in_channels = 3
 
+        self.concat = concat
+        in_channels = 3 + 32 if concat else 3
         for i in range(7, 9):  # 128, 256
             out_channels = channels[f'{2**i}'] # 
             self.style_convs.append(

@@ -14,7 +14,7 @@ import torchvision.transforms as transforms
 
 class FaceParse(object):
     def __init__(self, base_dir='./', model='ParseNet-latest', device='cuda', mask_map = [0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0]):
-        self.mfile = os.path.join(base_dir, model+'.pth')
+        self.mfile = os.path.join(base_dir, f'{model}.pth')
         self.size = 512
         self.device = device
 
@@ -45,9 +45,7 @@ class FaceParse(object):
         imt = self.img2tensor(im)
         with torch.no_grad():
             pred_mask, sr_img_tensor = self.faceparse(imt)  # (1, 19, 512, 512)
-        mask = self.tenor2mask(pred_mask, masks)
-
-        return mask
+        return self.tenor2mask(pred_mask, masks)
 
     def process_tensor(self, imt):
         imt = F.interpolate(imt.flip(1)*2-1, (self.size, self.size))
@@ -122,8 +120,7 @@ class FaceParse_v2(object):
         imt = torch.unsqueeze(im, 0).to(self.device)
         with torch.no_grad():
             pred_mask = self.faceparse(imt)[0]
-        mask = self.tenor2mask(pred_mask, masks)
-        return mask
+        return self.tenor2mask(pred_mask, masks)
 
     # def img2tensor(self, img):
     #     img = img[..., ::-1] # BGR to RGB

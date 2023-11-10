@@ -104,7 +104,9 @@ class Options(object):
         # if test, disable visdom, update results path
         if opt.mode == "test":
             opt.visdom_display_id = 0
-            opt.results = os.path.join(opt.results, "%s_%s_%s" % (dataset_name, opt.model, opt.load_epoch))
+            opt.results = os.path.join(
+                opt.results, f"{dataset_name}_{opt.model}_{opt.load_epoch}"
+            )
             if not os.path.exists(opt.results):
                 os.makedirs(opt.results)
 
@@ -115,7 +117,7 @@ class Options(object):
             cur_id = int(str_id)
             if cur_id >= 0:
                 opt.gpu_ids.append(cur_id)
-        if len(opt.gpu_ids) > 0:
+        if opt.gpu_ids:
             torch.cuda.set_device(opt.gpu_ids[0])
 
         # set seed 
@@ -124,14 +126,14 @@ class Options(object):
         random.seed(a=opt.lucky_seed)
         np.random.seed(seed=opt.lucky_seed)
         torch.manual_seed(opt.lucky_seed)
-        if len(opt.gpu_ids) > 0:
+        if opt.gpu_ids:
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
             torch.cuda.manual_seed(opt.lucky_seed)
             torch.cuda.manual_seed_all(opt.lucky_seed)
-            
+
         # write command to file
-        script_dir = opt.ckpt_dir 
+        script_dir = opt.ckpt_dir
         with open(os.path.join(os.path.join(script_dir, "run_script.sh")), 'a+') as f:
             f.write("[%5s][%s]python %s\n" % (opt.mode, opt.name, ' '.join(sys.argv)))
 

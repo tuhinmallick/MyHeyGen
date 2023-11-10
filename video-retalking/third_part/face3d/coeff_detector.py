@@ -72,8 +72,8 @@ class CoeffDetector(nn.Module):
         return img, trans_params        
 
 def get_data_path(root, keypoint_root):
-    filenames = list()
-    keypoint_filenames = list()
+    filenames = []
+    keypoint_filenames = []
 
     IMAGE_EXTENSIONS_LOWERCASE = {'jpg', 'png', 'jpeg', 'webp'}
     IMAGE_EXTENSIONS = IMAGE_EXTENSIONS_LOWERCASE.union({f.upper() for f in IMAGE_EXTENSIONS_LOWERCASE})
@@ -84,14 +84,12 @@ def get_data_path(root, keypoint_root):
     filenames = sorted(filenames)
     for filename in filenames:
         name = os.path.splitext(os.path.basename(filename))[0]
-        keypoint_filenames.append(
-            os.path.join(keypoint_root, name + '.txt')
-        )
+        keypoint_filenames.append(os.path.join(keypoint_root, f'{name}.txt'))
     return filenames, keypoint_filenames
 
 
 if __name__ == "__main__":
-    opt = InferenceOptions().parse() 
+    opt = InferenceOptions().parse()
     coeff_detector = CoeffDetector(opt)
     kp_extractor = KeypointExtractor()
     image_names, keypoint_names = get_data_path(opt.input_dir, opt.keypoint_dir)
@@ -104,12 +102,13 @@ if __name__ == "__main__":
             lm = kp_extractor.extract_keypoint(image, keypoint_name)
         else:
             lm = np.loadtxt(keypoint_name).astype(np.float32)
-            lm = lm.reshape([-1, 2]) 
+            lm = lm.reshape([-1, 2])
         predicted = coeff_detector(image, lm)
         name = os.path.splitext(os.path.basename(image_name))[0]
         np.savetxt(
-            "{}/{}_3dmm_coeff.txt".format(opt.output_dir, name), 
-            predicted['coeff_3dmm'].reshape(-1))
+            f"{opt.output_dir}/{name}_3dmm_coeff.txt",
+            predicted['coeff_3dmm'].reshape(-1),
+        )
 
         
 

@@ -92,7 +92,7 @@ def main(args):
 
     for key, value in cfg.items():
         num_space = 25 - len(key)
-        logging.info(": " + key + " " * num_space + str(value))
+        logging.info(f": {key}" + " " * num_space + str(value))
 
     val_target = cfg.val_targets
     callback_verification = CallBackVerification(2000, rank, val_target, cfg.rec)

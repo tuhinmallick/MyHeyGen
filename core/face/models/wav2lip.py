@@ -108,19 +108,16 @@ class Wav2Lip(nn.Module):
                 print(x.size())
                 print(feats[-1].size())
                 raise e
-            
+
             feats.pop()
 
         x = self.output_block(x)
 
-        if input_dim_size > 4:
-            x = torch.split(x, B, dim=0) # [(B, C, H, W)]
-            outputs = torch.stack(x, dim=2) # (B, C, T, H, W)
+        if input_dim_size <= 4:
+            return x
 
-        else:
-            outputs = x
-            
-        return outputs
+        x = torch.split(x, B, dim=0) # [(B, C, H, W)]
+        return torch.stack(x, dim=2)
 
 class Wav2Lip_disc_qual(nn.Module):
     def __init__(self):
@@ -166,10 +163,10 @@ class Wav2Lip_disc_qual(nn.Module):
         for f in self.face_encoder_blocks:
             false_feats = f(false_feats)
 
-        false_pred_loss = F.binary_cross_entropy(self.binary_pred(false_feats).view(len(false_feats), -1), 
-                                        torch.ones((len(false_feats), 1)).cpu())
-
-        return false_pred_loss
+        return F.binary_cross_entropy(
+            self.binary_pred(false_feats).view(len(false_feats), -1),
+            torch.ones((len(false_feats), 1)).cpu(),
+        )
 
     def forward(self, face_sequences):
         face_sequences = self.to_2d(face_sequences)
