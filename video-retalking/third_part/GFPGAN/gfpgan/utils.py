@@ -85,10 +85,7 @@ class GFPGANer():
             model_path = load_file_from_url(
                 url=model_path, model_dir=os.path.join(ROOT_DIR, 'gfpgan/weights'), progress=True, file_name=None)
         loadnet = torch.load(model_path)
-        if 'params_ema' in loadnet:
-            keyname = 'params_ema'
-        else:
-            keyname = 'params'
+        keyname = 'params_ema' if 'params_ema' in loadnet else 'params'
         self.gfpgan.load_state_dict(loadnet[keyname], strict=True)
         self.gfpgan.eval()
         self.gfpgan = self.gfpgan.to(self.device)
@@ -127,17 +124,15 @@ class GFPGANer():
             restored_face = restored_face.astype('uint8')
             self.face_helper.add_restored_face(restored_face)
 
-        if not has_aligned and paste_back:
-            # upsample the background
-            if self.bg_upsampler is not None:
-                # Now only support RealESRGAN for upsampling background
-                bg_img = self.bg_upsampler.enhance(img, outscale=self.upscale)[0]
-            else:
-                bg_img = None
-
-            self.face_helper.get_inverse_affine(None)
-            # paste each restored face to the input image
-            restored_img = self.face_helper.paste_faces_to_input_image(upsample_img=bg_img)
-            return self.face_helper.cropped_faces, self.face_helper.restored_faces, restored_img
-        else:
+        if has_aligned or not paste_back:
             return self.face_helper.cropped_faces, self.face_helper.restored_faces, None
+            # upsample the background
+        bg_img = (
+            self.bg_upsampler.enhance(img, outscale=self.upscale)[0]
+            if self.bg_upsampler is not None
+            else None
+        )
+        self.face_helper.get_inverse_affine(None)
+        # paste each restored face to the input image
+        restored_img = self.face_helper.paste_faces_to_input_image(upsample_img=bg_img)
+        return self.face_helper.cropped_faces, self.face_helper.restored_faces, restored_img

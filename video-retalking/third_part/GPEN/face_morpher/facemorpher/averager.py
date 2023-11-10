@@ -50,11 +50,10 @@ def load_image_points(path, size):
   img = cv2.imread(path)
   points = locator.face_points(img)
 
-  if len(points) == 0:
-    print('No face in %s' % path)
-    return None, None
-  else:
+  if len(points) != 0:
     return aligner.resize_align(img, points, size)
+  print(f'No face in {path}')
+  return None, None
 
 def averager(imgpaths, dest_filename=None, width=500, height=600, background='black',
              blur_edges=False, out_filename='result.png', plot=False):
@@ -69,14 +68,15 @@ def averager(imgpaths, dest_filename=None, width=500, height=600, background='bl
       images.append(img)
       point_set.append(points)
 
-  if len(images) == 0:
+  if not images:
     raise FileNotFoundError('Could not find any valid images.' +
                             ' Supported formats are .jpg, .png, .jpeg')
 
   if dest_filename is not None:
     dest_img, dest_points = load_image_points(dest_filename, size)
     if dest_img is None or dest_points is None:
-      raise Exception('No face or detected face points in dest img: ' + dest_filename)
+      raise Exception(
+          f'No face or detected face points in dest img: {dest_filename}')
   else:
     dest_img = np.zeros(images[0].shape, np.uint8)
     dest_points = locator.average_points(point_set)
@@ -103,7 +103,7 @@ def averager(imgpaths, dest_filename=None, width=500, height=600, background='bl
       average_background = locator.average_points(images)
       dest_img = blender.overlay_image(dest_img, mask, average_background)
 
-  print('Averaged {} images'.format(num_images))
+  print(f'Averaged {num_images} images')
   plt = plotter.Plotter(plot, num_images=1, out_filename=out_filename)
   plt.save(dest_img)
   plt.plot_one(dest_img)

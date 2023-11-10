@@ -29,13 +29,10 @@ class NormLayer(nn.Module):
         elif norm_type == 'none':
             self.norm = lambda x: x*1.0
         else:
-            assert 1==0, 'Norm type {} not support.'.format(norm_type)
+            assert 1==0, f'Norm type {norm_type} not support.'
 
     def forward(self, x, ref=None):
-        if self.norm_type == 'spade':
-            return self.norm(x, ref)
-        else:
-            return self.norm(x)
+        return self.norm(x, ref) if self.norm_type == 'spade' else self.norm(x)
 
 
 class ReluLayer(nn.Module):
@@ -63,7 +60,7 @@ class ReluLayer(nn.Module):
         elif relu_type == 'none':
             self.func = lambda x: x*1.0
         else:
-            assert 1==0, 'Relu type {} not support.'.format(relu_type)
+            assert 1==0, f'Relu type {relu_type} not support.'
 
     def forward(self, x):
         return self.func(x)

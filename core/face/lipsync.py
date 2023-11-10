@@ -60,21 +60,20 @@ class LipSync:
         #print('Load checkpoint from: {}'.format(checkpoint_path))
         checkpoint = self._load(checkpoint_path)
         s = checkpoint['state_dict']
-        new_s = {}
-        for k, v in s.items():
-            new_s[k.replace('module.', '')] = v
+        new_s = {k.replace('module.', ''): v for k, v in s.items()}
         model.load_state_dict(new_s)
 
         model = model.to(self.device)
         return model.eval()
     
     def _load(self, checkpoint_path):
-        if self.device == 'cuda':
-            checkpoint = torch.load(checkpoint_path)
-        else:
-            checkpoint = torch.load(checkpoint_path,
-                                    map_location=lambda storage, loc: storage)
-        return checkpoint
+        return (
+            torch.load(checkpoint_path)
+            if self.device == 'cuda'
+            else torch.load(
+                checkpoint_path, map_location=lambda storage, loc: storage
+            )
+        )
     
     def datagen(self, frames_dict, mels):
         img_batch, mel_batch, frame_batch, coords_batch, frame_ids = [], [], [], [], []

@@ -23,8 +23,7 @@ class SELayer(nn.Module):
         b, c, _, _ = x.size()
         y = self.avg_pool(x).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
-        res = x * y.expand_as(x)
-        return res
+        return x * y.expand_as(x)
 
 
 class FFCSE_block(nn.Module):
@@ -181,7 +180,7 @@ class FFC(nn.Module):
                  padding_type='reflect', gated=False, **spectral_kwargs):
         super(FFC, self).__init__()
 
-        assert stride == 1 or stride == 2, "Stride should be 1 or 2."
+        assert stride in [1, 2], "Stride should be 1 or 2."
         self.stride = stride
 
         in_cg = int(in_channels * ratio_gin)

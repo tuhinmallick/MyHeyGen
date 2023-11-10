@@ -17,8 +17,8 @@ def options():
 
     parser.add_argument('--DNet_path', type=str, default='checkpoints/DNet.pt')
     parser.add_argument('--LNet_path', type=str, default='checkpoints/LNet.pth')
-    parser.add_argument('--ENet_path', type=str, default='checkpoints/ENet.pth') 
-    parser.add_argument('--face3d_net_path', type=str, default='checkpoints/face3d_pretrain_epoch_20.pth')                      
+    parser.add_argument('--ENet_path', type=str, default='checkpoints/ENet.pth')
+    parser.add_argument('--face3d_net_path', type=str, default='checkpoints/face3d_pretrain_epoch_20.pth')
     parser.add_argument('--face', type=str, help='Filepath of video/image that contains faces to use', required=True)
     parser.add_argument('--audio', type=str, help='Filepath of video/audio file to use as raw audio source', required=True)
     parser.add_argument('--exp_img', type=str, help='Expression template. neutral, smile or image path', default='neutral')
@@ -38,15 +38,14 @@ def options():
     parser.add_argument('--nosmooth', default=False, action='store_true', help='Prevent smoothing face detections over a short temporal window')
     parser.add_argument('--static', default=False, action='store_true')
 
-    
+
     parser.add_argument('--up_face', default='original')
     parser.add_argument('--one_shot', action='store_true')
     parser.add_argument('--without_rl1', default=False, action='store_true', help='Do not use the relative l1')
     parser.add_argument('--tmp_dir', type=str, default='temp', help='Folder to save tmp results')
     parser.add_argument('--re_preprocess', action='store_true')
-    
-    args = parser.parse_args()
-    return args
+
+    return parser.parse_args()
 
 exp_aus_dict = {        # AU01_r, AU02_r, AU04_r, AU05_r, AU06_r, AU07_r, AU09_r, AU10_r, AU12_r, AU14_r, AU15_r, AU17_r, AU20_r, AU23_r, AU25_r, AU26_r, AU45_r.
     'sad': torch.Tensor([[ 0,     0,      0,      0,      0,      0,      0,      0,      0,      0,      0,      0,      0,      0,      0,      0,      0]]),
@@ -93,25 +92,21 @@ def find_crop_norm_ratio(source_coeff, target_coeffs):
     exp_diff = np.mean(np.abs(target_coeffs[:,80:144] - source_coeff[:,80:144]), 1) # mean different exp
     angle_diff = np.mean(np.abs(target_coeffs[:,224:227] - source_coeff[:,224:227]), 1) # mean different angle
     index = np.argmin(alpha*exp_diff + (1-alpha)*angle_diff)  # find the smallerest index
-    crop_norm_ratio = source_coeff[:,-3] / target_coeffs[index:index+1, -3]
-    return crop_norm_ratio
+    return source_coeff[:,-3] / target_coeffs[index:index+1, -3]
 
 def get_smoothened_boxes(boxes, T):
     for i in range(len(boxes)):
-        if i + T > len(boxes):
-            window = boxes[len(boxes) - T:]
-        else:
-            window = boxes[i : i + T]
+        window = boxes[len(boxes) - T:] if i + T > len(boxes) else boxes[i : i + T]
         boxes[i] = np.mean(window, axis=0)
     return boxes
 
 def face_detect(images, args, jaw_correction=False, detector=None):
-    if detector == None:
+    if detector is None:
         device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         detector = face_detection.FaceAlignment(face_detection.LandmarksType._2D, 
                                                 flip_input=False, device=device)
 
-    batch_size = args.face_det_batch_size    
+    batch_size = args.face_det_batch_size
     while 1:
         predictions = []
         try:
@@ -121,7 +116,7 @@ def face_detect(images, args, jaw_correction=False, detector=None):
             if batch_size == 1: 
                 raise RuntimeError('Image too big to run face detection on GPU. Please use the --resize_factor argument')
             batch_size //= 2
-            print('Recovering from OOM error; New batch size: {}'.format(batch_size))
+            print(f'Recovering from OOM error; New batch size: {batch_size}')
             continue
         break
 
@@ -148,12 +143,13 @@ def face_detect(images, args, jaw_correction=False, detector=None):
     return results 
 
 def _load(checkpoint_path, device):
-    if device == 'cuda':
-        checkpoint = torch.load(checkpoint_path)
-    else:
-        checkpoint = torch.load(checkpoint_path,
-                                map_location=lambda storage, loc: storage)
-    return checkpoint
+    return (
+        torch.load(checkpoint_path)
+        if device == 'cuda'
+        else torch.load(
+            checkpoint_path, map_location=lambda storage, loc: storage
+        )
+    )
 
 def split_coeff(coeffs):
         """
@@ -186,7 +182,7 @@ def Laplacian_Pyramid_Blending_with_mask(A, B, m, num_levels = 6):
     gpA = [GA]
     gpB = [GB]
     gpM = [GM]
-    for i in range(num_levels):
+    for _ in range(num_levels):
         GA = cv2.pyrDown(GA)
         GB = cv2.pyrDown(GB)
         GM = cv2.pyrDown(GM)
@@ -235,7 +231,7 @@ def normalize_kp(kp_source, kp_driving, kp_driving_initial, adapt_movement_scale
     else:
         adapt_movement_scale = 1
 
-    kp_new = {k: v for k, v in kp_driving.items()}
+    kp_new = dict(kp_driving.items())
     if use_relative_movement:
         kp_value_diff = (kp_driving['value'] - kp_driving_initial['value'])
         kp_value_diff *= adapt_movement_scale

@@ -21,10 +21,7 @@ except BaseException:
         x2, y2 = min(ax2, bx2), min(ay2, by2)
         w = x2 - x1
         h = y2 - y1
-        if w < 0 or h < 0:
-            return 0.0
-        else:
-            return 1.0 * w * h / (sa + sb - w * h)
+        return 0.0 if w < 0 or h < 0 else 1.0 * w * h / (sa + sb - w * h)
 
 
 def bboxlog(x1, y1, x2, y2, axc, ayc, aww, ahh):
@@ -42,7 +39,7 @@ def bboxloginv(dx, dy, dw, dh, axc, ayc, aww, ahh):
 
 
 def nms(dets, thresh):
-    if 0 == len(dets):
+    if len(dets) == 0:
         return []
     x1, y1, x2, y2, scores = dets[:, 0], dets[:, 1], dets[:, 2], dets[:, 3], dets[:, 4]
     areas = (x2 - x1 + 1) * (y2 - y1 + 1)

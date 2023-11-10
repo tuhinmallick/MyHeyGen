@@ -41,21 +41,21 @@ class ParseNet(nn.Module):
         down_steps = int(np.log2(in_size//min_feat_size))
         up_steps = int(np.log2(out_size//min_feat_size))
 
-        # =============== define encoder-body-decoder ==================== 
-        self.encoder = []
-        self.encoder.append(ConvLayer(3, base_ch, 3, 1))
+        # =============== define encoder-body-decoder ====================
+        self.encoder = [ConvLayer(3, base_ch, 3, 1)]
         head_ch = base_ch
-        for i in range(down_steps):
+        for _ in range(down_steps):
             cin, cout = ch_clip(head_ch), ch_clip(head_ch * 2)
             self.encoder.append(ResidualBlock(cin, cout, scale='down', **act_args))
             head_ch = head_ch * 2
 
         self.body = []
-        for i in range(res_depth):
-            self.body.append(ResidualBlock(ch_clip(head_ch), ch_clip(head_ch), **act_args))
-
+        self.body.extend(
+            ResidualBlock(ch_clip(head_ch), ch_clip(head_ch), **act_args)
+            for _ in range(res_depth)
+        )
         self.decoder = []
-        for i in range(up_steps):
+        for _ in range(up_steps):
             cin, cout = ch_clip(head_ch), ch_clip(head_ch // 2)
             self.decoder.append(ResidualBlock(cin, cout, scale='up', **act_args))
             head_ch = head_ch // 2

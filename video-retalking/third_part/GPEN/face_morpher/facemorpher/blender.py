@@ -91,7 +91,7 @@ def poisson_blend(img_source, dest_img, img_mask, offset=(0, 0)):
         coff_mat[index, index] = 4
         if index + 1 < np.prod(region_size):
           coff_mat[index, index + 1] = -1
-        if index - 1 >= 0:
+        if index >= 1:
           coff_mat[index, index - 1] = -1
         if index + region_size[1] < np.prod(region_size):
           coff_mat[index, index + region_size[1]] = -1

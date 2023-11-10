@@ -22,18 +22,18 @@ class Visual_Encoder(nn.Module):
                 ca_layer = RETURNX()
             else:
                 ca_layer = Transformer(2**(i+1) * ngf,2,4,ngf,ngf*4)
-            setattr(self, 'ca' + str(i), ca_layer)
-            setattr(self, 'ref_down' + str(i), model_ref)
-            setattr(self, 'inp_down' + str(i), model_inp)
+            setattr(self, f'ca{str(i)}', ca_layer)
+            setattr(self, f'ref_down{str(i)}', model_ref)
+            setattr(self, f'inp_down{str(i)}', model_inp)
         self.output_nc = out_channels * 2
 
     def forward(self, maskGT, ref):
         x_maskGT, x_ref = self.first_inp(maskGT), self.first_ref(ref)
         out=[x_maskGT]
         for i in range(self.layers):
-            model_ref = getattr(self, 'ref_down'+str(i))
-            model_inp = getattr(self, 'inp_down'+str(i))
-            ca_layer = getattr(self, 'ca'+str(i))
+            model_ref = getattr(self, f'ref_down{str(i)}')
+            model_inp = getattr(self, f'inp_down{str(i)}')
+            ca_layer = getattr(self, f'ca{str(i)}')
             x_maskGT, x_ref = model_inp(x_maskGT), model_ref(x_ref)
             x_maskGT = ca_layer(x_maskGT, x_ref)
             if i < self.layers - 1:
@@ -57,9 +57,9 @@ class Decoder(nn.Module):
             res = FFCADAINResBlocks(num_block, in_channels, feature_nc, norm_layer, nonlinearity, use_spect)
             jump = Jump(out_channels, norm_layer, nonlinearity, use_spect)
 
-            setattr(self, 'up' + str(i), up)
-            setattr(self, 'res' + str(i), res)            
-            setattr(self, 'jump' + str(i), jump)
+            setattr(self, f'up{str(i)}', up)
+            setattr(self, f'res{str(i)}', res)
+            setattr(self, f'jump{str(i)}', jump)
 
         self.final = FinalBlock2d(out_channels, image_nc, use_spect, 'sigmoid')
         self.output_nc = out_channels
@@ -67,14 +67,13 @@ class Decoder(nn.Module):
     def forward(self, x, z):
         out = x.pop()
         for i in range(self.layers)[::-1]:
-            res_model = getattr(self, 'res' + str(i))
-            up_model = getattr(self, 'up' + str(i))
-            jump_model = getattr(self, 'jump' + str(i))
+            res_model = getattr(self, f'res{str(i)}')
+            up_model = getattr(self, f'up{str(i)}')
+            jump_model = getattr(self, f'jump{str(i)}')
             out = res_model(out, z)
             out = up_model(out)
             out = jump_model(x.pop()) + out
-        out_image = self.final(out)
-        return out_image
+        return self.final(out)
 
 
 class LNet(nn.Module): 
@@ -128,12 +127,10 @@ class LNet(nn.Module):
         cropped, ref = torch.split(face_sequences, 3, dim=1)
 
         vis_feat = self.encoder(cropped, ref)
-        audio_feat = self.audio_encoder(audio_sequences) 
+        audio_feat = self.audio_encoder(audio_sequences)
         _outputs = self.decoder(vis_feat, audio_feat)
 
-        if input_dim_size > 4:
-            _outputs = torch.split(_outputs, B, dim=0)
-            outputs = torch.stack(_outputs, dim=2) 
-        else:
-            outputs = _outputs
-        return outputs
+        if input_dim_size <= 4:
+            return _outputs
+        _outputs = torch.split(_outputs, B, dim=0)
+        return torch.stack(_outputs, dim=2)

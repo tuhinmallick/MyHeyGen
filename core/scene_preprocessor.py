@@ -47,10 +47,10 @@ class ScenePreprocessor:
                 frame_id += 1
 
     def is_frame_with_voice(self, frame_time, voice_segments):
-        for voice_segment in voice_segments:
-            if frame_time >= voice_segment[0] and frame_time <= voice_segment[1]:
-                return True
-        return False
+        return any(
+            frame_time >= voice_segment[0] and frame_time <= voice_segment[1]
+            for voice_segment in voice_segments
+        )
     
     def to_pydub_audio(self, clip_audio):
         temp_manager = TempFileManager()
@@ -75,10 +75,7 @@ class ScenePreprocessor:
     def get_persons_on_frame(self, frame_id):
         cursor = self.conn.execute('SELECT person_id FROM embeddings WHERE frame_id=?', (frame_id,))
         rows = cursor.fetchall()
-        output = []
-        for row in rows:
-            output.append(row[0])
-        return output
+        return [row[0] for row in rows]
     
     def create_db(self, db_name):
         if os.path.exists(db_name):
@@ -97,8 +94,7 @@ class ScenePreprocessor:
     
     def get_face_on_frame(self, person_id, frame_id):
         cursor = self.conn.execute('SELECT face, bbox FROM embeddings WHERE person_id=? AND frame_id=?', (person_id, frame_id))
-        row = cursor.fetchone()
-        if row:
+        if row := cursor.fetchone():
             return {
                 'face': np.array(pickle.loads(row[0])),
                 'bbox': np.array(pickle.loads(row[1]))
@@ -142,16 +138,12 @@ class ScenePreprocessor:
     def get_all_persons(self):
         cursor = self.conn.execute('SELECT person_id FROM persons')
         rows = cursor.fetchall()
-        persons = [row[0] for row in rows]
-        return persons
+        return [row[0] for row in rows]
     
     def get_embeddings(self, person_id):
         cursor = self.conn.execute('SELECT embedding FROM embeddings WHERE person_id=?', (person_id,))
         rows = cursor.fetchall()
-        embeddings = []
-        for row in rows:
-            embeddings.append(pickle.loads(row[0]))
-        return embeddings
+        return [pickle.loads(row[0]) for row in rows]
     
     def insert_embedding(self, person_id, embedding, frame_id, face, bbox):
         embedding_bytes = pickle.dumps(embedding)

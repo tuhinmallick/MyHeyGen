@@ -40,7 +40,7 @@ class MappingNet(nn.Module):
         for i in range(layer):
             net = nn.Sequential(nonlinearity,
                 torch.nn.Conv1d(descriptor_nc, descriptor_nc, kernel_size=3, padding=0, dilation=3))
-            setattr(self, 'encoder' + str(i), net)   
+            setattr(self, f'encoder{str(i)}', net)   
 
         self.pooling = nn.AdaptiveAvgPool1d(1)
         self.output_nc = descriptor_nc
@@ -48,7 +48,7 @@ class MappingNet(nn.Module):
     def forward(self, input_3dmm):
         out = self.first(input_3dmm)
         for i in range(self.layer):
-            model = getattr(self, 'encoder' + str(i))
+            model = getattr(self, f'encoder{str(i)}')
             out = model(out) + out[:,:,3:-3]
         out = self.pooling(out)
         return out   
@@ -81,10 +81,8 @@ class WarpingNet(nn.Module):
         self.pool = nn.AdaptiveAvgPool2d(1)
 
     def forward(self, input_image, descriptor):
-        final_output={}
         output = self.hourglass(input_image, descriptor)
-        final_output['flow_field'] = self.flow_out(output)
-
+        final_output = {'flow_field': self.flow_out(output)}
         deformation = flow_util.convert_flow_to_deformation(final_output['flow_field'])
         final_output['warp_image'] = flow_util.warp_image(input_image, deformation)
         return final_output
@@ -114,5 +112,4 @@ class EditingNet(nn.Module):
     def forward(self, input_image, warp_image, descriptor):
         x = torch.cat([input_image, warp_image], 1)
         x = self.encoder(x)
-        gen_image = self.decoder(x, descriptor)
-        return gen_image
+        return self.decoder(x, descriptor)

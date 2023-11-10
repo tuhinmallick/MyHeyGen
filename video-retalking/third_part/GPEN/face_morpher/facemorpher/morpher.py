@@ -42,24 +42,24 @@ def verify_args(args):
   if args['--images'] is None:
     valid = os.path.isfile(args['--src']) & os.path.isfile(args['--dest'])
     if not valid:
-      print('--src=%s or --dest=%s file does not exist. Double check the supplied paths' % (
-        args['--src'], args['--dest']))
+      print(
+          f"--src={args['--src']} or --dest={args['--dest']} file does not exist. Double check the supplied paths"
+      )
       exit(1)
   else:
     valid = os.path.isdir(args['--images'])
     if not valid:
-      print('--images=%s is not a valid directory' % args['--images'])
+      print(f"--images={args['--images']} is not a valid directory")
       exit(1)
 
 def load_image_points(path, size):
   img = cv2.imread(path)
   points = locator.face_points(img)
 
-  if len(points) == 0:
-    print('No face in %s' % path)
-    return None, None
-  else:
+  if len(points) != 0:
     return aligner.resize_align(img, points, size)
+  print(f'No face in {path}')
+  return None, None
 
 def load_valid_image_points(imgpaths, size):
   for path in imgpaths:

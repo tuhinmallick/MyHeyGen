@@ -17,7 +17,7 @@ def create_dataloader(opt):
 
 class DataLoader:
     def name(self):
-        return self.dataset.name() + "_Loader"
+        return f"{self.dataset.name()}_Loader"
 
     def create_datase(self):
         # specify which dataset to load here

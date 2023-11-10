@@ -76,9 +76,10 @@ class StyleGAN2GeneratorBilinearSFT(StyleGAN2GeneratorBilinear):
                 noise = [getattr(self.noises, f'noise{i}') for i in range(self.num_layers)]
         # style truncation
         if truncation < 1:
-            style_truncation = []
-            for style in styles:
-                style_truncation.append(truncation_latent + truncation * (style - truncation_latent))
+            style_truncation = [
+                truncation_latent + truncation * (style - truncation_latent)
+                for style in styles
+            ]
             styles = style_truncation
         # get style latents with injection
         if len(styles) == 1:
@@ -122,10 +123,7 @@ class StyleGAN2GeneratorBilinearSFT(StyleGAN2GeneratorBilinear):
 
         image = skip
 
-        if return_latents:
-            return image, latent
-        else:
-            return image, None
+        return (image, latent) if return_latents else (image, None)
 
 
 @ARCH_REGISTRY.register()
@@ -246,10 +244,7 @@ class GFPGANBilinear(nn.Module):
         self.condition_shift = nn.ModuleList()
         for i in range(3, self.log_size + 1):
             out_channels = channels[f'{2**i}']
-            if sft_half:
-                sft_out_channels = out_channels
-            else:
-                sft_out_channels = out_channels * 2
+            sft_out_channels = out_channels if sft_half else out_channels * 2
             self.condition_scale.append(
                 nn.Sequential(
                     EqualConv2d(out_channels, out_channels, 3, stride=1, padding=1, bias=True, bias_init_val=0),

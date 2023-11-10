@@ -198,7 +198,7 @@ class ResultWriter:
         audio_basename = os.path.basename(audio_path)
         audio_basename = os.path.splitext(audio_basename)[0]
         output_path = os.path.join(
-            self.output_dir, audio_basename + '.' + self.extension
+            self.output_dir, f'{audio_basename}.{self.extension}'
         )
 
         with open(output_path, 'w', encoding='utf-8') as f:
@@ -226,7 +226,7 @@ class SubtitlesWriter(ResultWriter):
         highlight_words: bool = options['highlight_words']
         max_line_width = 1000 if raw_max_line_width is None else raw_max_line_width
         preserve_segments = max_line_count is None or raw_max_line_width is None
-        
+
         if len(result['segments']) == 0:
             return
 
@@ -288,7 +288,7 @@ class SubtitlesWriter(ResultWriter):
                     subtitle_text = ''.join([word['word'] for word in subtitle])
                 else:
                     subtitle_text = ' '.join([word['word'] for word in subtitle])
-                has_timing = any(['start' in word for word in subtitle])
+                has_timing = any('start' in word for word in subtitle)
 
                 # add [$SPEAKER_ID]: to each subtitle if speaker is available
                 prefix = ''

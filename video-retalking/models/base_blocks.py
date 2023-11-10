@@ -70,10 +70,7 @@ class LayerNorm2d(nn.Module):
 
 
 def spectral_norm(module, use_spect=True):
-    if use_spect:
-        return SpectralNorm(module)
-    else:
-        return module
+    return SpectralNorm(module) if use_spect else module
 
 
 class FirstBlock2d(nn.Module):
@@ -88,8 +85,7 @@ class FirstBlock2d(nn.Module):
             self.model = nn.Sequential(conv, norm_layer(output_nc), nonlinearity)
 
     def forward(self, x):
-        out = self.model(x)
-        return out 
+        return self.model(x) 
 
 
 class DownBlock2d(nn.Module):
@@ -105,8 +101,7 @@ class DownBlock2d(nn.Module):
             self.model = nn.Sequential(conv, norm_layer(output_nc), nonlinearity, pool)
 
     def forward(self, x):
-        out = self.model(x)
-        return out 
+        return self.model(x) 
 
 
 class UpBlock2d(nn.Module):
@@ -120,8 +115,7 @@ class UpBlock2d(nn.Module):
             self.model = nn.Sequential(conv, norm_layer(output_nc), nonlinearity)
 
     def forward(self, x):
-        out = self.model(F.interpolate(x, scale_factor=2))
-        return out
+        return self.model(F.interpolate(x, scale_factor=2))
 
 
 class ADAIN(nn.Module):
@@ -153,8 +147,7 @@ class ADAIN(nn.Module):
         # apply scale and bias
         gamma = gamma.view(*gamma.size()[:2], 1,1)
         beta = beta.view(*beta.size()[:2], 1,1)
-        out = normalized * (1 + gamma) + beta
-        return out
+        return normalized * (1 + gamma) + beta
 
 
 class FineADAINResBlock2d(nn.Module):
@@ -173,21 +166,20 @@ class FineADAINResBlock2d(nn.Module):
     def forward(self, x, z):
         dx = self.actvn(self.norm1(self.conv1(x), z))
         dx = self.norm2(self.conv2(x), z)
-        out = dx + x
-        return out  
+        return dx + x  
 
 
 class FineADAINResBlocks(nn.Module):
     def __init__(self, num_block, input_nc, feature_nc, norm_layer=nn.BatchNorm2d, nonlinearity=nn.LeakyReLU(), use_spect=False):
-        super(FineADAINResBlocks, self).__init__()                                
+        super(FineADAINResBlocks, self).__init__()
         self.num_block = num_block
         for i in range(num_block):
             model = FineADAINResBlock2d(input_nc, feature_nc, norm_layer, nonlinearity, use_spect)
-            setattr(self, 'res'+str(i), model)
+            setattr(self, f'res{str(i)}', model)
 
     def forward(self, x, z):
         for i in range(self.num_block):
-            model = getattr(self, 'res'+str(i))
+            model = getattr(self, f'res{str(i)}')
             x = model(x, z)
         return x   
 
@@ -244,12 +236,10 @@ class ADAINDecoderBlock(nn.Module):
         x_s = self.shortcut(x, z)
         dx = self.conv_0(self.actvn(self.norm_0(x, z)))
         dx = self.conv_1(self.actvn(self.norm_1(dx, z)))
-        out = x_s + dx
-        return out
+        return x_s + dx
 
     def shortcut(self, x, z):
-        x_s = self.conv_s(self.actvn(self.norm_s(x, z)))
-        return x_s   
+        return self.conv_s(self.actvn(self.norm_s(x, z)))   
 
 
 class FineEncoder(nn.Module):
@@ -262,14 +252,14 @@ class FineEncoder(nn.Module):
             in_channels = min(ngf*(2**i), img_f)
             out_channels = min(ngf*(2**(i+1)), img_f)
             model = DownBlock2d(in_channels, out_channels, norm_layer, nonlinearity, use_spect)
-            setattr(self, 'down' + str(i), model)
+            setattr(self, f'down{str(i)}', model)
         self.output_nc = out_channels
 
     def forward(self, x):
         x = self.first(x)
         out=[x]
         for i in range(self.layers):
-            model = getattr(self, 'down'+str(i))
+            model = getattr(self, f'down{str(i)}')
             x = model(x)
             out.append(x)
         return out
@@ -286,23 +276,22 @@ class FineDecoder(nn.Module):
             up = UpBlock2d(in_channels, out_channels, norm_layer, nonlinearity, use_spect)
             res = FineADAINResBlocks(num_block, in_channels, feature_nc, norm_layer, nonlinearity, use_spect)
             jump = Jump(out_channels, norm_layer, nonlinearity, use_spect)
-            setattr(self, 'up' + str(i), up)
-            setattr(self, 'res' + str(i), res)            
-            setattr(self, 'jump' + str(i), jump)
+            setattr(self, f'up{str(i)}', up)
+            setattr(self, f'res{str(i)}', res)
+            setattr(self, f'jump{str(i)}', jump)
         self.final = FinalBlock2d(out_channels, image_nc, use_spect, 'tanh')
         self.output_nc = out_channels
 
     def forward(self, x, z):
         out = x.pop()
         for i in range(self.layers)[::-1]:
-            res_model = getattr(self, 'res' + str(i))
-            up_model = getattr(self, 'up' + str(i))
-            jump_model = getattr(self, 'jump' + str(i))
+            res_model = getattr(self, f'res{str(i)}')
+            up_model = getattr(self, f'up{str(i)}')
+            jump_model = getattr(self, f'jump{str(i)}')
             out = res_model(out, z)
             out = up_model(out)
             out = jump_model(x.pop()) + out
-        out_image = self.final(out)
-        return out_image
+        return self.final(out)
 
 
 class ADAINEncoder(nn.Module):
@@ -314,14 +303,14 @@ class ADAINEncoder(nn.Module):
             in_channels = min(ngf * (2**i), img_f)
             out_channels = min(ngf *(2**(i+1)), img_f)
             model = ADAINEncoderBlock(in_channels, out_channels, pose_nc, nonlinearity, use_spect)
-            setattr(self, 'encoder' + str(i), model)
+            setattr(self, f'encoder{str(i)}', model)
         self.output_nc = out_channels
         
     def forward(self, x, z):
         out = self.input_layer(x)
         out_list = [out]
         for i in range(self.layers):
-            model = getattr(self, 'encoder' + str(i))
+            model = getattr(self, f'encoder{str(i)}')
             out = model(out, z)
             out_list.append(out)
         return out_list
@@ -342,13 +331,13 @@ class ADAINDecoder(nn.Module):
             in_channels = in_channels*2 if i != (encoder_layers-1) and self.skip_connect else in_channels
             out_channels = min(ngf * (2**i), img_f)
             model = ADAINDecoderBlock(in_channels, out_channels, out_channels, pose_nc, use_transpose, nonlinearity, use_spect)
-            setattr(self, 'decoder' + str(i), model)
+            setattr(self, f'decoder{str(i)}', model)
         self.output_nc = out_channels*2 if self.skip_connect else out_channels
 
     def forward(self, x, z):
         out = x.pop() if self.skip_connect else x
         for i in range(self.encoder_layers-self.decoder_layers, self.encoder_layers)[::-1]:
-            model = getattr(self, 'decoder' + str(i))
+            model = getattr(self, f'decoder{str(i)}')
             out = model(out, z)
             out = torch.cat([out, x.pop()], 1) if self.skip_connect else out
         return out
@@ -413,15 +402,15 @@ class FFCResnetBlock(nn.Module):
 
 class FFCADAINResBlocks(nn.Module):
     def __init__(self, num_block, input_nc, feature_nc, norm_layer=nn.BatchNorm2d, nonlinearity=nn.LeakyReLU(), use_spect=False):
-        super(FFCADAINResBlocks, self).__init__()                                
+        super(FFCADAINResBlocks, self).__init__()
         self.num_block = num_block
         for i in range(num_block):
             model = FFCResnetBlock(input_nc, feature_nc, norm_layer, nonlinearity, use_spect)
-            setattr(self, 'res'+str(i), model)
+            setattr(self, f'res{str(i)}', model)
 
     def forward(self, x, z):
         for i in range(self.num_block):
-            model = getattr(self, 'res'+str(i))
+            model = getattr(self, f'res{str(i)}')
             x = model(x, z)
         return x 
 
@@ -437,8 +426,7 @@ class Jump(nn.Module):
             self.model = nn.Sequential(conv, norm_layer(input_nc), nonlinearity)
 
     def forward(self, x):
-        out = self.model(x)
-        return out   
+        return self.model(x)   
 
 
 class FinalBlock2d(nn.Module):
@@ -446,15 +434,11 @@ class FinalBlock2d(nn.Module):
         super(FinalBlock2d, self).__init__()
         kwargs = {'kernel_size': 7, 'stride': 1, 'padding':3}
         conv = spectral_norm(nn.Conv2d(input_nc, output_nc, **kwargs), use_spect)
-        if tanh_or_sigmoid == 'sigmoid':
-            out_nonlinearity = nn.Sigmoid()
-        else:
-            out_nonlinearity = nn.Tanh()            
+        out_nonlinearity = nn.Sigmoid() if tanh_or_sigmoid == 'sigmoid' else nn.Tanh()
         self.model = nn.Sequential(conv, out_nonlinearity)
 
     def forward(self, x):
-        out = self.model(x)
-        return out    
+        return self.model(x)    
 
 
 class ModulatedConv2d(nn.Module):
@@ -531,9 +515,7 @@ class StyleConv(nn.Module):
         out = out + self.weight * noise
         # add bias
         out = out + self.bias
-        # activation
-        out = self.activate(out)
-        return out
+        return self.activate(out)
 
 
 class ToRGB(nn.Module):

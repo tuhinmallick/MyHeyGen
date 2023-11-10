@@ -95,8 +95,7 @@ def _umeyama(src, dst, estimate_scale=True, scale=1.0):
 
 class FaceWarpException(Exception):
     def __str__(self):
-        return 'In File {}:{}'.format(
-            __file__, super.__str__(self))
+        return f'In File {__file__}:{super.__str__(self)}'
 
 
 def get_reference_facial_points(output_size=None,
@@ -115,18 +114,20 @@ def get_reference_facial_points(output_size=None,
     if (output_size and
             output_size[0] == tmp_crop_size[0] and
             output_size[1] == tmp_crop_size[1]):
-        print('output_size == DEFAULT_CROP_SIZE {}: return default reference points'.format(tmp_crop_size))
+        print(
+            f'output_size == DEFAULT_CROP_SIZE {tmp_crop_size}: return default reference points'
+        )
         return tmp_5pts
 
     if (inner_padding_factor == 0 and
             outer_padding == (0, 0)):
-        if output_size is None:
-            print('No paddings to do: return default reference points')
-            return tmp_5pts
-        else:
+        if output_size is not None:
             raise FaceWarpException(
-                'No paddings to do, output_size must be None or {}'.format(tmp_crop_size))
+                f'No paddings to do, output_size must be None or {tmp_crop_size}'
+            )
 
+        print('No paddings to do: return default reference points')
+        return tmp_5pts
     # check output size
     if not (0 <= inner_padding_factor <= 1.0):
         raise FaceWarpException('Not (0 <= inner_padding_factor <= 1.0)')
@@ -138,8 +139,10 @@ def get_reference_facial_points(output_size=None,
         output_size += np.array(outer_padding)
         print('              deduced from paddings, output_size = ', output_size)
 
-    if not (outer_padding[0] < output_size[0]
-            and outer_padding[1] < output_size[1]):
+    if (
+        outer_padding[0] >= output_size[0]
+        or outer_padding[1] >= output_size[1]
+    ):
         raise FaceWarpException('Not (outer_padding[0] < output_size[0]'
                                 'and outer_padding[1] < output_size[1])')
 
@@ -232,7 +235,7 @@ def warp_and_crop_face(src_img,
         raise FaceWarpException(
             'reference_pts.shape must be (K,2) or (2,K) and K>2')
 
-    if ref_pts_shp[0] == 2 or ref_pts_shp[0] == 3:
+    if ref_pts_shp[0] in [2, 3]:
         ref_pts = ref_pts.T
 
     src_pts = np.float32(facial_pts)
@@ -241,7 +244,7 @@ def warp_and_crop_face(src_img,
         raise FaceWarpException(
             'facial_pts.shape must be (K,2) or (2,K) and K>2')
 
-    if src_pts_shp[0] == 2 or src_pts_shp[0] == 3:
+    if src_pts_shp[0] in [2, 3]:
         src_pts = src_pts.T
 
     if src_pts.shape != ref_pts.shape:
@@ -249,11 +252,11 @@ def warp_and_crop_face(src_img,
             'facial_pts and reference_pts must have the same shape')
 
     if align_type is 'cv2_affine':
-        tfm = cv2.getAffineTransform(src_pts[0:3], ref_pts[0:3])
-        tfm_inv = cv2.getAffineTransform(ref_pts[0:3], src_pts[0:3])
+        tfm = cv2.getAffineTransform(src_pts[:3], ref_pts[:3])
+        tfm_inv = cv2.getAffineTransform(ref_pts[:3], src_pts[:3])
     elif align_type is 'cv2_rigid':
-        tfm, _ = cv2.estimateAffinePartial2D(src_pts[0:3], ref_pts[0:3])
-        tfm_inv, _ = cv2.estimateAffinePartial2D(ref_pts[0:3], src_pts[0:3])
+        tfm, _ = cv2.estimateAffinePartial2D(src_pts[:3], ref_pts[:3])
+        tfm_inv, _ = cv2.estimateAffinePartial2D(ref_pts[:3], src_pts[:3])
     elif align_type is 'affine':
         tfm = get_affine_transform_matrix(src_pts, ref_pts)
         tfm_inv = get_affine_transform_matrix(ref_pts, src_pts)

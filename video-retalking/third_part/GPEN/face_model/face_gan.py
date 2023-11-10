@@ -14,7 +14,7 @@ from face_model.gpen_model import FullGenerator
 
 class FaceGAN(object):
     def __init__(self, base_dir='./', size=512, model=None, channel_multiplier=2, narrow=1, is_norm=True, device='cuda'):
-        self.mfile = os.path.join(base_dir, model+'.pth')
+        self.mfile = os.path.join(base_dir, f'{model}.pth')
         self.n_mlp = 8
         self.device = device
         self.is_norm = is_norm

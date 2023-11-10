@@ -84,7 +84,7 @@ def transform(point, center, scale, resolution, invert=False):
     if invert:
         t = torch.inverse(t)
 
-    new_point = (torch.matmul(t, _pt))[0:2]
+    new_point = (torch.matmul(t, _pt))[:2]
 
     return new_point.int()
 
@@ -110,10 +110,9 @@ def crop(image, center, scale, resolution=256.0):
     if image.ndim > 2:
         newDim = np.array([br[1] - ul[1], br[0] - ul[0],
                            image.shape[2]], dtype=np.int32)
-        newImg = np.zeros(newDim, dtype=np.uint8)
     else:
         newDim = np.array([br[1] - ul[1], br[0] - ul[0]], dtype=np.int)
-        newImg = np.zeros(newDim, dtype=np.uint8)
+    newImg = np.zeros(newDim, dtype=np.uint8)
     ht = image.shape[0]
     wd = image.shape[1]
     newX = np.array(
@@ -226,11 +225,7 @@ def shuffle_lr(parts, pairs=None):
                  34, 33, 32, 31, 45, 44, 43, 42, 47, 46, 39, 38, 37, 36, 41,
                  40, 54, 53, 52, 51, 50, 49, 48, 59, 58, 57, 56, 55, 64, 63,
                  62, 61, 60, 67, 66, 65]
-    if parts.ndimension() == 3:
-        parts = parts[pairs, ...]
-    else:
-        parts = parts[:, pairs, ...]
-
+    parts = parts[pairs, ...] if parts.ndimension() == 3 else parts[:, pairs, ...]
     return parts
 
 

@@ -42,8 +42,9 @@ def split_on_silence(audio_segment, min_silence_len=1000, silence_thresh=-16, ke
 
 def remove_silence(audio, silence_thresh=-40):
     silence_thresh = float(silence_thresh)  # Convert silence_thresh to float
-    non_silent_audio = split_on_silence(audio, min_silence_len=1000, silence_thresh=silence_thresh)
-    return non_silent_audio
+    return split_on_silence(
+        audio, min_silence_len=1000, silence_thresh=silence_thresh
+    )
 
 def join_audio_segments(segments, segment_duration, min_segment_duration):
     joined_segments = []

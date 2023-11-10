@@ -18,14 +18,10 @@ def save_wavenet_wav(wav, path, sr):
     librosa.output.write_wav(path, wav, sr=sr)
 
 def preemphasis(wav, k, preemphasize=True):
-    if preemphasize:
-        return signal.lfilter([1, -k], [1], wav)
-    return wav
+    return signal.lfilter([1, -k], [1], wav) if preemphasize else wav
 
 def inv_preemphasis(wav, k, inv_preemphasize=True):
-    if inv_preemphasize:
-        return signal.lfilter([1], [1, -k], wav)
-    return wav
+    return signal.lfilter([1], [1, -k], wav) if inv_preemphasize else wav
 
 def get_hop_size():
     hop_size = hp.hop_size
@@ -37,18 +33,14 @@ def get_hop_size():
 def linearspectrogram(wav):
     D = _stft(preemphasis(wav, hp.preemphasis, hp.preemphasize))
     S = _amp_to_db(np.abs(D)) - hp.ref_level_db
-    
-    if hp.signal_normalization:
-        return _normalize(S)
-    return S
+
+    return _normalize(S) if hp.signal_normalization else S
 
 def melspectrogram(wav):
     D = _stft(preemphasis(wav, hp.preemphasis, hp.preemphasize))
     S = _amp_to_db(_linear_to_mel(np.abs(D))) - hp.ref_level_db
-    
-    if hp.signal_normalization:
-        return _normalize(S)
-    return S
+
+    return _normalize(S) if hp.signal_normalization else S
 
 def _lws_processor():
     import lws
@@ -66,11 +58,11 @@ def num_frames(length, fsize, fshift):
     """Compute number of time frames of spectrogram
     """
     pad = (fsize - fshift)
-    if length % fshift == 0:
-        M = (length + pad * 2 - fsize) // fshift + 1
-    else:
-        M = (length + pad * 2 - fsize) // fshift + 2
-    return M
+    return (
+        (length + pad * 2 - fsize) // fshift + 1
+        if length % fshift == 0
+        else (length + pad * 2 - fsize) // fshift + 2
+    )
 
 
 def pad_lr(x, fsize, fshift):

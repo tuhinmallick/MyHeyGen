@@ -34,22 +34,19 @@ class TextHelper:
             dst_lang = 'zh'
         if 'zh' in src_lang:
             src_lang = 'zh'
-        
+
         if "ja" in dst_lang:
             dst_lang = "jp"
         if  "ja" in src_lang:
             src_lang = "jp"
-        
+
         if "fr" in dst_lang:
             dst_lang = "fra"
         if  "fr" in src_lang:
             src_lang = "fra"
-            
+
         print(text, ' ', src_lang, ' ', dst_lang)
         endpoint = 'http://api.fanyi.baidu.com'
-        path = '/api/trans/vip/translate'
-        url = endpoint + path
-
         salt = random.randint(32768, 65536)
         sign = self.make_md5(self.appid + text + str(salt) + self.appkey)
 
@@ -57,6 +54,7 @@ class TextHelper:
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         payload = {'appid': self.appid, 'q': text, 'from': src_lang, 'to': dst_lang, 'salt': salt, 'sign': sign}
 
+        url = f'{endpoint}/api/trans/vip/translate'
         # Send request
         try:
             r = requests.post(url, params=payload, headers=headers)
@@ -68,9 +66,9 @@ class TextHelper:
             return dst_text.strip()
 
         # Show response
-        
+
         # print('translate result:{}'.format(result['trans_result'][0]['dst']))
-        
+
         if self.human_trans == 1:
             print("human trans mode, you can edit it in config.json HUMAN_TRANS as 0 to disable")
             is_change = input("is tranlator good?input 1 is good else 0:\n")
@@ -79,8 +77,8 @@ class TextHelper:
                 dst_text = dst_text.strip()
         else:
             print("You can edit it in config.json HUMAN_TRANS as 1 to enable human trans mode")
-            
-        print("final translate result:{}".format(dst_text))
+
+        print(f"final translate result:{dst_text}")
         return dst_text
             
 

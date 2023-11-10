@@ -48,18 +48,15 @@ class Croper:
         # Get the landmarks/parts for the face in box d.
         shape = self.predictor(img_np, d)
         t = list(shape.parts())
-        a = []
-        for tt in t:
-            a.append([tt.x, tt.y])
-        lm = np.array(a)
-        return lm
+        a = [[tt.x, tt.y] for tt in t]
+        return np.array(a)
 
     def align_face(self, img, lm, output_size=1024):
         """
         :param filepath: str
         :return: PIL Image
         """
-        lm_chin = lm[0: 17]  # left-right
+        lm_chin = lm[:17]
         lm_eyebrow_left = lm[17: 22]  # left-right
         lm_eyebrow_right = lm[22: 27]  # left-right
         lm_nose = lm[27: 31]  # top-down
@@ -80,12 +77,12 @@ class Croper:
         eye_to_mouth = mouth_avg - eye_avg
 
         # Choose oriented crop rectangle.
-        x = eye_to_eye - np.flipud(eye_to_mouth) * [-1, 1]  
-        x /= np.hypot(*x)  
-        x *= max(np.hypot(*eye_to_eye) * 2.0, np.hypot(*eye_to_mouth) * 1.8)   
+        x = eye_to_eye - np.flipud(eye_to_mouth) * [-1, 1]
+        x /= np.hypot(*x)
+        x *= max(np.hypot(*eye_to_eye) * 2.0, np.hypot(*eye_to_mouth) * 1.8)
         y = np.flipud(x) * [-1, 1]
         c = eye_avg + eye_to_mouth * 0.1
-        quad = np.stack([c - x - y, c - x + y, c + x + y, c + x - y])   
+        quad = np.stack([c - x - y, c - x + y, c + x + y, c + x - y])
         qsize = np.hypot(*x) * 2   
 
         # Shrink.
@@ -103,7 +100,7 @@ class Croper:
         crop = (max(crop[0] - border, 0), max(crop[1] - border, 0), min(crop[2] + border, img.size[0]),
                 min(crop[3] + border, img.size[1]))
         if crop[2] - crop[0] < img.size[0] or crop[3] - crop[1] < img.size[1]:
-            quad -= crop[0:2]
+            quad -= crop[:2]
 
         # Transform.
         quad = (quad + 0.5).flatten()

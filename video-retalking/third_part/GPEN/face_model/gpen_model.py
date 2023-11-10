@@ -51,9 +51,14 @@ class Upsample(nn.Module):
         self.device = device
 
     def forward(self, input):
-        out = upfirdn2d(input, self.kernel, up=self.factor, down=1, pad=self.pad, device=self.device)
-
-        return out
+        return upfirdn2d(
+            input,
+            self.kernel,
+            up=self.factor,
+            down=1,
+            pad=self.pad,
+            device=self.device,
+        )
 
 
 class Downsample(nn.Module):
@@ -73,9 +78,14 @@ class Downsample(nn.Module):
         self.device = device
 
     def forward(self, input):
-        out = upfirdn2d(input, self.kernel, up=1, down=self.factor, pad=self.pad, device=self.device)
-
-        return out
+        return upfirdn2d(
+            input,
+            self.kernel,
+            up=1,
+            down=self.factor,
+            pad=self.pad,
+            device=self.device,
+        )
 
 
 class Blur(nn.Module):
@@ -93,9 +103,7 @@ class Blur(nn.Module):
         self.device = device
 
     def forward(self, input):
-        out = upfirdn2d(input, self.kernel, pad=self.pad, device=self.device)
-
-        return out
+        return upfirdn2d(input, self.kernel, pad=self.pad, device=self.device)
 
 
 class EqualConv2d(nn.Module):
@@ -112,22 +120,16 @@ class EqualConv2d(nn.Module):
         self.stride = stride
         self.padding = padding
 
-        if bias:
-            self.bias = nn.Parameter(torch.zeros(out_channel))
-
-        else:
-            self.bias = None
+        self.bias = nn.Parameter(torch.zeros(out_channel)) if bias else None
 
     def forward(self, input):
-        out = F.conv2d(
+        return F.conv2d(
             input,
             self.weight * self.scale,
             bias=self.bias,
             stride=self.stride,
             padding=self.padding,
         )
-
-        return out
 
     def __repr__(self):
         return (
@@ -310,9 +312,7 @@ class ConstantInput(nn.Module):
 
     def forward(self, input):
         batch = input.shape[0]
-        out = self.input.repeat(batch, 1, 1, 1)
-
-        return out
+        return self.input.repeat(batch, 1, 1, 1)
 
 
 class StyledConv(nn.Module):
@@ -399,13 +399,16 @@ class Generator(nn.Module):
 
         layers = [PixelNorm()]
 
-        for i in range(n_mlp):
-            layers.append(
-                EqualLinear(
-                    style_dim, style_dim, lr_mul=lr_mlp, activation='fused_lrelu', device=device
-                )
+        layers.extend(
+            EqualLinear(
+                style_dim,
+                style_dim,
+                lr_mul=lr_mlp,
+                activation='fused_lrelu',
+                device=device,
             )
-
+            for _ in range(n_mlp)
+        )
         self.style = nn.Sequential(*layers)
 
         self.channels = {
@@ -467,19 +470,17 @@ class Generator(nn.Module):
 
         noises = [torch.randn(1, 1, 2 ** 2, 2 ** 2, device=device)]
 
-        for i in range(3, self.log_size + 1):
-            for _ in range(2):
-                noises.append(torch.randn(1, 1, 2 ** i, 2 ** i, device=device))
-
+        noises.extend(
+            torch.randn(1, 1, 2**i, 2**i, device=device)
+            for i, _ in itertools.product(range(3, self.log_size + 1), range(2))
+        )
         return noises
 
     def mean_latent(self, n_latent):
         latent_in = torch.randn(
             n_latent, self.style_dim, device=self.input.input.device
         )
-        latent = self.style(latent_in).mean(0, keepdim=True)
-
-        return latent
+        return self.style(latent_in).mean(0, keepdim=True)
 
     def get_latent(self, input):
         return self.style(input)
@@ -506,15 +507,12 @@ class Generator(nn.Module):
             for i in range(self.n_mlp + 1):
                 size = 2 ** (i+2)
                 noise.append(torch.randn(batch, self.channels[size], size, size, device=styles[0].device))
-            
+
         if truncation < 1:
-            style_t = []
-
-            for style in styles:
-                style_t.append(
-                    truncation_latent + truncation * (style - truncation_latent)
-                )
-
+            style_t = [
+                truncation_latent + truncation * (style - truncation_latent)
+                for style in styles
+            ]
             styles = style_t
 
         if len(styles) < 2:
@@ -548,11 +546,7 @@ class Generator(nn.Module):
 
         image = skip
 
-        if return_latents:
-            return image, latent
-
-        else:
-            return image, None
+        return (image, latent) if return_latents else (image, None)
 
 class ConvLayer(nn.Sequential):
     def __init__(

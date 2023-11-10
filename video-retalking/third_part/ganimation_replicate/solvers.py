@@ -110,7 +110,7 @@ class Solver(object):
         self.test_model = create_model(opt)
 
     def test_ops(self):
-        for batch_idx, batch in enumerate(self.test_dataset):
+        for batch in self.test_dataset:
             with torch.no_grad():
                 # interpolate several times
                 faces_list = [batch['src_img'].float().numpy()]
@@ -141,7 +141,7 @@ class Solver(object):
                 for face_idx in range(len(faces_list) - 1):  # remove target image
                     cur_numpy = np.array(self.visual.numpy2im(faces_list[face_idx][idx]))
                     imgs_numpy_list.extend([cur_numpy for _ in range(3)])
-                saved_path = os.path.join(self.opt.results, "%s_%s.gif" % (src_name, tar_name))
+                saved_path = os.path.join(self.opt.results, f"{src_name}_{tar_name}.gif")
                 imageio.mimsave(saved_path, imgs_numpy_list)
             else:
                 # concate src, inters, tar faces
@@ -150,10 +150,10 @@ class Solver(object):
                     concate_img = np.concatenate((concate_img, np.array(self.visual.numpy2im(faces_list[face_idx][idx]))), axis=1)
                 concate_img = Image.fromarray(concate_img)
                 # save image
-                saved_path = os.path.join(self.opt.results, "%s_%s.jpg" % (src_name, tar_name))
+                saved_path = os.path.join(self.opt.results, f"{src_name}_{tar_name}.jpg")
                 concate_img.save(saved_path)
 
-            print("[Success] Saved images to %s" % saved_path)
+            print(f"[Success] Saved images to {saved_path}")
 
 
 

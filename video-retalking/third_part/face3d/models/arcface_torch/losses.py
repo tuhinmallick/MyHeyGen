@@ -22,8 +22,7 @@ class CosFace(nn.Module):
         m_hot = torch.zeros(index.size()[0], cosine.size()[1], device=cosine.device)
         m_hot.scatter_(1, label[index, None], self.m)
         cosine[index] -= m_hot
-        ret = cosine * self.s
-        return ret
+        return cosine * self.s
 
 
 class ArcFace(nn.Module):

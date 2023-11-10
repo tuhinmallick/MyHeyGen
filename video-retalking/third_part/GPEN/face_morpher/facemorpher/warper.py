@@ -71,8 +71,7 @@ def triangular_affine_matrices(vertices, src_points, dest_points):
   for tri_indices in vertices:
     src_tri = np.vstack((src_points[tri_indices, :].T, ones))
     dst_tri = np.vstack((dest_points[tri_indices, :].T, ones))
-    mat = np.dot(src_tri, np.linalg.inv(dst_tri))[:2, :]
-    yield mat
+    yield np.dot(src_tri, np.linalg.inv(dst_tri))[:2, :]
 
 def warp_image(src_img, src_points, dest_points, dest_shape, dtype=np.uint8):
   # Resultant image will not have an alpha channel

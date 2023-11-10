@@ -133,7 +133,7 @@ class FFHQDegradationDataset(data.Dataset):
         # get coordinates
         locations = []
         for part in ['left_eye', 'right_eye', 'mouth']:
-            mean = components_bbox[part][0:2]
+            mean = components_bbox[part][:2]
             half_len = components_bbox[part][2]
             if 'eye' in part:
                 half_len *= self.eye_enlarge_ratio
@@ -214,15 +214,14 @@ class FFHQDegradationDataset(data.Dataset):
         normalize(img_lq, self.mean, self.std, inplace=True)
 
         if self.crop_components:
-            return_dict = {
+            return {
                 'lq': img_lq,
                 'gt': img_gt,
                 'gt_path': gt_path,
                 'loc_left_eye': loc_left_eye,
                 'loc_right_eye': loc_right_eye,
-                'loc_mouth': loc_mouth
+                'loc_mouth': loc_mouth,
             }
-            return return_dict
         else:
             return {'lq': img_lq, 'gt': img_gt, 'gt_path': gt_path}
 
